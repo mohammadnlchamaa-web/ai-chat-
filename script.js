@@ -1,142 +1,40 @@
-const chatBox = document.getElementById("chat-box");
-const input = document.getElementById("user-input");
-const sendBtn = document.getElementById("send-btn");
-const newChatBtn = document.getElementById("new-chat-btn");
-const chatList = document.getElementById("chat-list");
+// Get elements from HTML
+const input = document.getElementById("input");
+const button = document.getElementById("send");
+const chat = document.getElementById("chat");
 
-let chats = JSON.parse(localStorage.getItem("chats") || "{}");
-let currentChat = null;
-
-function typeText(element, text, speed = 20) {
-  let i = 0;
-
-  element.innerHTML = `<span class="text"></span><span class="cursor"></span>`;
-  
-  const textSpan = element.querySelector(".text");
-  const cursor = element.querySelector(".cursor");
-
-  function step() {
-    if (i < text.length) {
-      textSpan.textContent += text[i++];
-      chatBox.scrollTop = chatBox.scrollHeight;
-      setTimeout(step, speed);
-    } else {
-      cursor.remove(); // remove cursor when done
-    }
-  }
-
-  step();
-}
-function save() {
-  localStorage.setItem("chats", JSON.stringify(chats));
-}
-
-function newChat() {
-  const id = "chat_" + Date.now();
-  chats[id] = [];
-  currentChat = id;
-  chatBox.innerHTML = "";
-  save();
-  renderSidebar();
-}
-
-function loadChat(id) {
-  currentChat = id;
-  chatBox.innerHTML = "";
-  chats[id].forEach(m => addMessage(m.text, m.type));
-}
-
-function renderSidebar() {
-  chatList.innerHTML = "";
-
-  Object.keys(chats).forEach(id => {
-    const div = document.createElement("div");
-    div.className = "chat-item";
-
-    div.innerText = chats[id][0]?.text?.slice(0, 20) || "New Chat";
-
-    div.onclick = () => loadChat(id);
-
-    const del = document.createElement("button");
-    del.innerText = "🗑";
-
-    del.onclick = (e) => {
-      e.stopPropagation();
-      delete chats[id];
-      save();
-      renderSidebar();
-    };
-
-    div.appendChild(del);
-    chatList.appendChild(div);
-  });
-}
-
-function addMessage(text, type) {
-  const msg = document.createElement("div");
-  msg.className = "msg " + type;
-
-  const bubble = document.createElement("div");
-  bubble.className = "bubble";
-  bubble.innerText = text;
-
-  msg.appendChild(bubble);
-  chatBox.appendChild(msg);
-
-  chatBox.scrollTop = chatBox.scrollHeight;
-
-  return bubble;
-}
-
+// Send message function
 async function sendMessage() {
-  const msg = input.value.trim();
-  if (!msg) return;
+  const message = input.value;
+  if (!message) return;
 
-  if (!currentChat) newChat();
-
-  addMessage(msg, "user");
-  chats[currentChat].push({ text: msg, type: "user" });
-
+  // Show user message
+  chat.innerHTML += `<div><b>You:</b> ${message}</div>`;
   input.value = "";
 
- const bubble = addMessage("", "ai");
-
-bubble.innerHTML = `
-  <div class="dots">
-    <span></span><span></span><span></span>
-  </div>
-`;
-
   try {
-    const res = await fetch("/chat", {
+    // Call backend (your server.js deployed URL)
+    const response = await fetch("https://ai-chat-vxyv.onrender.com", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: chats[currentChat] })
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ message })
     });
 
-    const data = await res.json();
-typeText(bubble, data.reply || "No response", 15);
-    chats[currentChat].push({ text: data.reply, type: "ai" });
-    save();
-    renderSidebar();
+    const data = await response.json();
 
-  } catch (err) {
-    bubble.innerText = "Server error";
+    // Show AI reply
+    chat.innerHTML += `<div><b>AI:</b> ${data.reply}</div>`;
+  } catch (error) {
+    chat.innerHTML += `<div style="color:red;"><b>Error:</b> Server not responding</div>`;
   }
 }
 
-sendBtn.onclick = sendMessage;
+// Button click
+button.addEventListener("click", sendMessage);
 
-input.addEventListener("keydown", e => {
+// Enter key support
+input.addEventListener("keydown", (e) => {
   if (e.key === "Enter") sendMessage();
 });
-
-newChatBtn.onclick = newChat;
-
-if (Object.keys(chats).length === 0) newChat();
-else {
-  currentChat = Object.keys(chats)[0];
-  loadChat(currentChat);
-}
-
-renderSidebar();

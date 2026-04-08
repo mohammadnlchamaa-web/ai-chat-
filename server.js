@@ -3,26 +3,26 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
-const path = require("path");
 
-app.use(express.static(path.join(__dirname, "public")));
 app.use(cors());
 app.use(express.json());
-app.use(express.static("public"));
 
 /* =========================
-   🤖 CHAT ROUTE (GROQ FIXED)
+   🤖 CHAT ROUTE (GROQ AI)
 ========================= */
 app.post("/chat", async (req, res) => {
   try {
     const messages = req.body.messages;
 
     if (!Array.isArray(messages)) {
-      return res.json({ reply: "Invalid request format" });
+      return res.status(400).json({
+        reply: "Invalid request format"
+      });
     }
 
+    // Format messages for Groq
     const formatted = messages
-      .filter(m => m && m.text && m.text.trim())
+      .filter(m => m?.text?.trim())
       .map(m => ({
         role: m.type === "user" ? "user" : "assistant",
         content: m.text.trim()
@@ -32,31 +32,26 @@ app.post("/chat", async (req, res) => {
       return res.json({ reply: "Say something 🙂" });
     }
 
-    const response = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
-        },
-        body: JSON.stringify({
-          // ✅ FIXED MODEL (NO MORE 400 ERROR)
-          model: "llama-3.1-8b-instant",
-
-          messages: formatted,
-          temperature: 0.7
-        })
-      }
-    );
+    // Call Groq API
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: formatted,
+        temperature: 0.7
+      })
+    });
 
     const data = await response.json();
 
-    // If Groq returns an error, show it clearly
     if (!response.ok) {
       console.log("GROQ ERROR:", data);
       return res.json({
-        reply: "Groq error: " + (data?.error?.message || "Unknown error")
+        reply: data?.error?.message || "Groq API error"
       });
     }
 
@@ -67,13 +62,18 @@ app.post("/chat", async (req, res) => {
     res.json({ reply });
 
   } catch (err) {
-    res.json({ reply: "Server error: " + err.message });
+    console.log("SERVER ERROR:", err);
+    res.status(500).json({
+      reply: "Server error: " + err.message
+    });
   }
 });
 
 /* =========================
    🚀 START SERVER
 ========================= */
-app.listen(3000, () => {
-  console.log("🚀 Server running on http://localhost:3000");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
