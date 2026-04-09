@@ -88,3 +88,24 @@ body {
     transform: translateY(0);
   }
 }
+.chat-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  cursor: pointer;
+  background: #222;
+  margin-bottom: 5px;
+  border-radius: 6px;
+  color: white;
+}
+
+.chat-item:hover {
+  background: #333;
+}
+
+.chat-item button {
+  background: red;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
