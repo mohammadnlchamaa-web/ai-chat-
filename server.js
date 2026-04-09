@@ -20,11 +20,16 @@ app.get("/", (req, res) => {
 ========================= */
 app.post("/chat", async (req, res) => {
   try {
-    const message = req.body.message;
+    const messages = req.body.messages;
 
-    if (!message) {
-      return res.status(400).json({ reply: "No message provided" });
+    if (!Array.isArray(messages)) {
+      return res.status(400).json({ reply: "Invalid format" });
     }
+
+    const formatted = messages.map(m => ({
+      role: m.role,
+      content: m.content
+    }));
 
     const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
@@ -36,9 +41,7 @@ app.post("/chat", async (req, res) => {
         },
         body: JSON.stringify({
           model: "llama-3.1-8b-instant",
-          messages: [
-            { role: "user", content: message }
-          ],
+          messages: formatted,
           temperature: 0.7
         })
       }
@@ -46,24 +49,14 @@ app.post("/chat", async (req, res) => {
 
     const data = await response.json();
 
-    if (!response.ok) {
-      console.log("GROQ ERROR:", data);
-      return res.json({
-        reply: data?.error?.message || "Groq API error"
-      });
-    }
-
     const reply =
       data?.choices?.[0]?.message?.content ||
-      "No response from AI";
+      "No response";
 
     res.json({ reply });
 
   } catch (err) {
-    console.log("SERVER ERROR:", err);
-    res.status(500).json({
-      reply: "Server error: " + err.message
-    });
+    res.status(500).json({ reply: err.message });
   }
 });
 
