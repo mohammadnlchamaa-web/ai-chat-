@@ -1,50 +1,48 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
+// Serve frontend
+app.use(express.static(path.join(__dirname, "public")));
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 /* =========================
-   🤖 CHAT ROUTE (GROQ AI)
+   🤖 CHAT ROUTE
 ========================= */
 app.post("/chat", async (req, res) => {
   try {
-    const messages = req.body.messages;
+    const message = req.body.message;
 
-    if (!Array.isArray(messages)) {
-      return res.status(400).json({
-        reply: "Invalid request format"
-      });
+    if (!message) {
+      return res.status(400).json({ reply: "No message provided" });
     }
 
-    // Format messages for Groq
-    const formatted = messages
-      .filter(m => m?.text?.trim())
-      .map(m => ({
-        role: m.type === "user" ? "user" : "assistant",
-        content: m.text.trim()
-      }));
-
-    if (formatted.length === 0) {
-      return res.json({ reply: "Say something 🙂" });
-    }
-
-    // Call Groq API
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        messages: formatted,
-        temperature: 0.7
-      })
-    });
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+          messages: [
+            { role: "user", content: message }
+          ],
+          temperature: 0.7
+        })
+      }
+    );
 
     const data = await response.json();
 
