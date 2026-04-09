@@ -1,47 +1,110 @@
-console.log("SCRIPT LOADED 🔥");
-alert("JS IS WORKING 🔥");
+console.log("SCRIPT RUNNING 🔥");
+
 const input = document.getElementById("user-input");
 const sendBtn = document.getElementById("send-btn");
 const chatBox = document.getElementById("chat-box");
 const newChatBtn = document.getElementById("new-chat-btn");
+const chatList = document.getElementById("chat-list");
 
-let messages = [];
+let chats = {};
+let currentChatId = null;
 
-// NEW CHAT
-newChatBtn.onclick = () => {
-  messages = [];
-  chatBox.innerHTML = "";
-};
+// 🧠 CREATE NEW CHAT
+function createChat() {
+  const id = Date.now().toString();
 
-// ADD MESSAGE
-function addMessage(text, type) {
-  const div = document.createElement("div");
-  div.className = "message " + type;
-  div.textContent = text;
-  chatBox.appendChild(div);
+  chats[id] = {
+    title: "New Chat",
+    messages: []
+  };
+
+  currentChatId = id;
+  renderChats();
+  renderMessages();
 }
 
-// SEND
+// 🧾 RENDER SIDEBAR
+function renderChats() {
+  chatList.innerHTML = "";
+
+  Object.keys(chats).forEach(id => {
+    const chatItem = document.createElement("div");
+    chatItem.className = "chat-item";
+    chatItem.textContent = chats[id].title;
+
+    // click = open chat
+    chatItem.onclick = () => {
+      currentChatId = id;
+      renderMessages();
+    };
+
+    // delete button
+    const del = document.createElement("button");
+    del.textContent = "✖";
+    del.onclick = (e) => {
+      e.stopPropagation();
+      delete chats[id];
+
+      if (currentChatId === id) {
+        currentChatId = Object.keys(chats)[0] || null;
+      }
+
+      renderChats();
+      renderMessages();
+    };
+
+    chatItem.appendChild(del);
+    chatList.appendChild(chatItem);
+  });
+}
+
+// 💬 RENDER MESSAGES
+function renderMessages() {
+  chatBox.innerHTML = "";
+
+  if (!currentChatId) return;
+
+  chats[currentChatId].messages.forEach(m => {
+    const div = document.createElement("div");
+    div.className = "message " + m.role;
+    div.textContent = m.content;
+    chatBox.appendChild(div);
+  });
+}
+
+// ➕ ADD MESSAGE
+function addMessage(role, content) {
+  chats[currentChatId].messages.push({ role, content });
+  renderMessages();
+}
+
+// 🚀 SEND MESSAGE
 async function sendMessage() {
   const message = input.value.trim();
-  if (!message) return;
+  if (!message || !currentChatId) return;
 
-  addMessage(message, "user");
-  messages.push({ role: "user", content: message });
+  // first message becomes title
+  if (chats[currentChatId].messages.length === 0) {
+    chats[currentChatId].title = message.slice(0, 20);
+  }
 
+  addMessage("user", message);
   input.value = "";
 
-  const res = await fetch("https://ai-chat-vxyv.onrender.com/chat", {
+  const res = await fetch("/chat", {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ messages })
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      messages: chats[currentChatId].messages
+    })
   });
 
   const data = await res.json();
 
-  messages.push({ role: "assistant", content: data.reply });
-
-  addMessage(data.reply, "ai");
+  addMessage("ai", data.reply);
+  renderChats();
 }
 
 // EVENTS
@@ -50,3 +113,8 @@ sendBtn.onclick = sendMessage;
 input.addEventListener("keydown", (e) => {
   if (e.key === "Enter") sendMessage();
 });
+
+newChatBtn.onclick = createChat;
+
+// 🚀 START WITH ONE CHAT
+createChat();
