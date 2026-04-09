@@ -1,7 +1,8 @@
 const input = document.getElementById("user-input");
 const sendBtn = document.getElementById("send-btn");
 const chatBox = document.getElementById("chat-box");
-
+let chats = [];
+let currentChat = [];
 let messages = [];
 let controller;
 
@@ -54,7 +55,8 @@ async function sendMessage() {
 
   addMessage(message, "user");
 
-  messages.push({ role: "user", content: message });
+ messages.push({ role: "user", content: message });
+currentChat.push({ role: "user", content: message });
 
   input.value = "";
 
@@ -75,7 +77,7 @@ async function sendMessage() {
     removeThinking();
 
     messages.push({ role: "assistant", content: data.reply });
-
+currentChat.push({ role: "assistant", content: data.reply });
     typeText(data.reply);
 
   } catch (err) {
@@ -84,7 +86,16 @@ async function sendMessage() {
 }
 
 sendBtn.addEventListener("click", sendMessage);
-
+document.getElementById("new-chat-btn").addEventListener("click", newChat);
 input.addEventListener("keydown", (e) => {
   if (e.key === "Enter") sendMessage();
 });
+function newChat() {
+  if (currentChat.length > 0) {
+    chats.push(currentChat);
+  }
+
+  currentChat = [];
+  messages = [];
+  chatBox.innerHTML = "";
+}
