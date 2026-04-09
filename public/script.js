@@ -1,5 +1,5 @@
 console.log("SCRIPT LOADED 🔥");
-
+alert("JS IS WORKING 🔥");
 const input = document.getElementById("user-input");
 const sendBtn = document.getElementById("send-btn");
 const chatBox = document.getElementById("chat-box");
