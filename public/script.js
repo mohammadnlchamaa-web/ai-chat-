@@ -1,7 +1,14 @@
 const input = document.getElementById("user-input");
 const button = document.getElementById("send-btn");
 const chat = document.getElementById("chat-box");
+function addMessage(text, type) {
+  const div = document.createElement("div");
+  div.classList.add("message", type);
+  div.textContent = text;
+  chat.appendChild(div);
 
+  chat.scrollTop = chat.scrollHeight;
+}
 let messages = [];
 
 async function sendMessage() {
@@ -14,7 +21,7 @@ async function sendMessage() {
     content: message
   });
 
-  chat.innerHTML += `<div><b>You:</b> ${message}</div>`;
+addMessage(message, "user");
   input.value = "";
 
   const response = await fetch("https://ai-chat-vxyv.onrender.com/chat", {
@@ -33,7 +40,7 @@ async function sendMessage() {
     content: data.reply
   });
 
-  chat.innerHTML += `<div><b>AI:</b> ${data.reply}</div>`;
+  addMessage(data.reply, "ai");
 }
 
 button.addEventListener("click", sendMessage);
