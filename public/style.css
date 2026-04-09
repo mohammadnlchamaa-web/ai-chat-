@@ -1,118 +1,170 @@
+/* 🌌 GLOBAL */
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: #0f172a;
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #0f172a, #020617);
   color: white;
+  overflow: hidden;
 }
 
+/* layout */
 .app {
   display: flex;
   height: 100vh;
 }
 
-/* SIDEBAR */
+/* 🌑 SIDEBAR */
 .sidebar {
   width: 240px;
-  background: #111827;
-  padding: 10px;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(20px);
+  padding: 12px;
+  border-right: 1px solid rgba(255,255,255,0.05);
 }
 
+/* ✨ NEW CHAT BUTTON */
 #new-chat-btn {
   width: 100%;
-  padding: 10px;
-  background: #2563eb;
+  padding: 12px;
+  border-radius: 14px;
   border: none;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
   color: white;
-  border-radius: 6px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 20px rgba(34,197,94,0.3);
 }
 
-/* MAIN */
+#new-chat-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 0 30px rgba(34,197,94,0.6);
+}
+
+/* 💬 MAIN */
 .main {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-/* CHAT */
+/* CHAT AREA */
 #chat-box {
   flex: 1;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 15px;
+  gap: 14px;
   overflow-y: auto;
 }
 
-/* MESSAGES */
+/* 💬 MESSAGE BASE */
 .message {
   max-width: 70%;
-  padding: 10px;
-  border-radius: 12px;
-  word-wrap: break-word;
-  animation: fadeIn 0.2s ease-in;
+  padding: 12px 16px;
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.3s ease;
+  line-height: 1.4;
 }
 
-/* USER RIGHT */
+/* 👤 USER */
 .user {
-  background: #4f46e5;
   align-self: flex-end;
-  margin-left: auto;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  box-shadow: 0 0 15px rgba(79,70,229,0.5);
 }
 
-/* AI LEFT */
+/* 🤖 AI */
 .ai {
-  background: #1f2937;
   align-self: flex-start;
-  margin-right: auto;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ✨ HOVER GLOW */
+.message:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 25px rgba(255,255,255,0.1);
+}
+
+/* ⌨️ INPUT AREA */
+.input-area {
+  display: flex;
+  padding: 12px;
+  background: rgba(15,23,42,0.8);
+  backdrop-filter: blur(15px);
+  border-top: 1px solid rgba(255,255,255,0.05);
 }
 
 /* INPUT */
-.input-area {
-  display: flex;
-  padding: 10px;
-  background: #111827;
-}
-
 #user-input {
   flex: 1;
-  padding: 10px;
+  padding: 12px;
+  border-radius: 12px;
   border: none;
   outline: none;
-  border-radius: 6px;
+  background: rgba(255,255,255,0.05);
+  color: white;
+  transition: 0.2s;
 }
 
+#user-input:focus {
+  box-shadow: 0 0 10px rgba(79,70,229,0.6);
+}
+
+/* 🚀 SEND BUTTON */
 #send-btn {
-  padding: 10px 16px;
-  border: none;
+  margin-left: 10px;
+  padding: 12px 18px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  border: none;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
   color: white;
   cursor: pointer;
   transition: all 0.25s ease;
-  font-weight: 500;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  box-shadow: 0 0 20px rgba(99,102,241,0.4);
 }
 
-btn:hover {
-  transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 8px 25px rgba(79,70,229,0.4);
+#send-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 0 35px rgba(99,102,241,0.7);
 }
 
-btn:active {
-  transform: scale(0.97);
-}
-#new-chat-btn {
-  width: 100%;
-  margin-bottom: 10px;
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+/* 💭 THINKING DOTS */
+.dots {
+  display: flex;
+  gap: 5px;
 }
 
-#new-chat-btn:hover {
-  box-shadow: 0 8px 25px rgba(34,197,94,0.4);
+.dots span {
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+  animation: bounce 1.2s infinite;
 }
-/* animation */
+
+.dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ✨ FADE */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
