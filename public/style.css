@@ -153,3 +153,20 @@ body {
   color: red;
   cursor: pointer;
 }
+#user-input {
+  background: #0f172a;
+  color: white;
+}
+
+.chat-item.active {
+  background: #4b5563;
+}
+
+.chat-item button {
+  opacity: 0;
+  transition: 0.2s;
+}
+
+.chat-item:hover button {
+  opacity: 1;
+}

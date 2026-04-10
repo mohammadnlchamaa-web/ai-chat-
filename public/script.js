@@ -5,11 +5,12 @@ const sendBtn = document.getElementById("send-btn");
 const chatBox = document.getElementById("chat-box");
 const newChatBtn = document.getElementById("new-chat-btn");
 const chatList = document.getElementById("chat-list");
+const chatForm = document.getElementById("chat-form");
 
 let chats = {};
 let currentChatId = null;
 
-// 🧠 CREATE NEW CHAT
+// CREATE CHAT
 function createChat() {
   const id = Date.now().toString();
 
@@ -23,24 +24,30 @@ function createChat() {
   renderMessages();
 }
 
-// 🧾 RENDER SIDEBAR
+// RENDER SIDEBAR
 function renderChats() {
   chatList.innerHTML = "";
 
   Object.keys(chats).forEach(id => {
     const chatItem = document.createElement("div");
     chatItem.className = "chat-item";
-    chatItem.textContent = chats[id].title;
 
-    // click = open chat
+    const title = document.createElement("span");
+    title.textContent = chats[id].title;
+
+    if (id === currentChatId) {
+      chatItem.classList.add("active");
+    }
+
     chatItem.onclick = () => {
       currentChatId = id;
       renderMessages();
+      renderChats();
     };
 
-    // delete button
     const del = document.createElement("button");
     del.textContent = "✖";
+
     del.onclick = (e) => {
       e.stopPropagation();
       delete chats[id];
@@ -53,16 +60,17 @@ function renderChats() {
       renderMessages();
     };
 
+    chatItem.appendChild(title);
     chatItem.appendChild(del);
     chatList.appendChild(chatItem);
   });
 }
 
-// 💬 RENDER MESSAGES
+// RENDER MESSAGES
 function renderMessages() {
   chatBox.innerHTML = "";
 
-  if (!currentChatId) return;
+  if (!currentChatId || !chats[currentChatId]) return;
 
   chats[currentChatId].messages.forEach(m => {
     const div = document.createElement("div");
@@ -70,20 +78,23 @@ function renderMessages() {
     div.textContent = m.content;
     chatBox.appendChild(div);
   });
+
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// ➕ ADD MESSAGE
+// ADD MESSAGE
 function addMessage(role, content) {
+  if (!currentChatId || !chats[currentChatId]) return;
+
   chats[currentChatId].messages.push({ role, content });
   renderMessages();
 }
 
-// 🚀 SEND MESSAGE
+// SEND MESSAGE
 async function sendMessage() {
   const message = input.value.trim();
   if (!message || !currentChatId) return;
 
-  // first message becomes title
   if (chats[currentChatId].messages.length === 0) {
     chats[currentChatId].title = message.slice(0, 20);
   }
@@ -91,30 +102,36 @@ async function sendMessage() {
   addMessage("user", message);
   input.value = "";
 
-  const res = await fetch("/chat", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      messages: chats[currentChatId].messages
-    })
-  });
+  try {
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        messages: chats[currentChatId].messages
+      })
+    });
 
-  const data = await res.json();
+    const data = await res.json();
+    addMessage("ai", data.reply || "⚠️ No response");
 
-  addMessage("ai", data.reply);
+  } catch (err) {
+    console.error(err);
+    addMessage("ai", "⚠️ Server not responding");
+  }
+
   renderChats();
 }
 
 // EVENTS
-sendBtn.onclick = sendMessage;
-
-input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") sendMessage();
+chatForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  sendMessage();
 });
 
+sendBtn.onclick = sendMessage;
 newChatBtn.onclick = createChat;
 
-// 🚀 START WITH ONE CHAT
+// START
 createChat();

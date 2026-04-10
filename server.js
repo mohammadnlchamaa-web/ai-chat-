@@ -1,3 +1,4 @@
+const fetch = require("node-fetch"); // needed for Node <18
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -11,6 +12,7 @@ app.use(express.json());
 // serve frontend
 app.use(express.static(path.join(__dirname, "public")));
 
+// API ROUTE
 app.post("/chat", async (req, res) => {
   try {
     const messages = req.body.messages;
@@ -27,6 +29,12 @@ app.post("/chat", async (req, res) => {
       })
     });
 
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("API ERROR:", text);
+      return res.json({ reply: "⚠️ API error" });
+    }
+
     const data = await response.json();
 
     res.json({
@@ -34,8 +42,14 @@ app.post("/chat", async (req, res) => {
     });
 
   } catch (err) {
-    res.json({ reply: "Server error" });
+    console.error("SERVER ERROR:", err);
+    res.json({ reply: "⚠️ Server error" });
   }
 });
 
-app.listen(3000, () => console.log("SERVER RUNNING 🔥"));
+// fallback route (fixes "Cannot GET /")
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+app.listen(3000, () => console.log("SERVER RUNNING 🔥 http://localhost:3000"));

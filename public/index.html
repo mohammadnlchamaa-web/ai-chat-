@@ -11,7 +11,7 @@
 <div class="app">
 
   <aside class="sidebar">
-    <button>+ New Chat</button>
+    <button id="new-chat-btn">+ New Chat</button>
     <div id="chat-list"></div>
   </aside>
 
@@ -19,15 +19,15 @@
 
     <section id="chat-box"></section>
 
-    <footer class="input-area">
+    <form class="input-area" id="chat-form">
       <input id="user-input" type="text" placeholder="Type message...">
-      <button id="send-btn">Send</button>
-    </footer>
+      <button type="submit" id="send-btn">Send</button>
+    </form>
 
   </main>
 
 </div>
 
-<script src="./script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
