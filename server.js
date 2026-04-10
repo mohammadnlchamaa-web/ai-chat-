@@ -42,9 +42,9 @@ app.post("/chat", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("SERVER ERROR:", err);
-    res.json({ reply: "⚠️ Server error" });
-  }
+  console.error("SERVER CRASHED:", err); // 👈 THIS LINE
+  res.json({ reply: "⚠️ Server error" });
+}
 });
 
 // fallback route (fixes "Cannot GET /")

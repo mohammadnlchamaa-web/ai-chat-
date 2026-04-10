@@ -74,7 +74,10 @@ function renderMessages() {
 
   chats[currentChatId].messages.forEach(m => {
     const div = document.createElement("div");
-    div.className = "message " + m.role;
+
+    // UI class stays "ai" for styling BUT API uses "assistant"
+    div.className = "message " + (m.uiRole || m.role);
+
     div.textContent = m.content;
     chatBox.appendChild(div);
   });
@@ -82,11 +85,18 @@ function renderMessages() {
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// ADD MESSAGE
+// ADD MESSAGE (FIXED)
 function addMessage(role, content) {
   if (!currentChatId || !chats[currentChatId]) return;
 
-  chats[currentChatId].messages.push({ role, content });
+  const apiRole = role === "ai" ? "assistant" : role;
+
+  chats[currentChatId].messages.push({
+    role: apiRole,     // 👈 THIS GOES TO API
+    uiRole: role,      // 👈 THIS IS FOR YOUR CSS
+    content
+  });
+
   renderMessages();
 }
 
@@ -109,11 +119,15 @@ async function sendMessage() {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        messages: chats[currentChatId].messages
+        messages: chats[currentChatId].messages.map(m => ({
+          role: m.role,
+          content: m.content
+        }))
       })
     });
 
     const data = await res.json();
+
     addMessage("ai", data.reply || "⚠️ No response");
 
   } catch (err) {
