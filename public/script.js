@@ -9,12 +9,9 @@ const chatForm = document.getElementById("chat-form");
 const menuBtn = document.getElementById("menu-btn");
 const sidebar = document.querySelector(".sidebar");
 
-menuBtn.onclick = () => {
+menuBtn?.addEventListener("click", () => {
   sidebar.classList.toggle("open");
-if (window.innerWidth < 768) {
-  sidebar.classList.remove("open");
-}
-};
+});
 let chats = {};
 let currentChatId = null;
 
