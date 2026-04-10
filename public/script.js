@@ -6,7 +6,15 @@ const chatBox = document.getElementById("chat-box");
 const newChatBtn = document.getElementById("new-chat-btn");
 const chatList = document.getElementById("chat-list");
 const chatForm = document.getElementById("chat-form");
+const menuBtn = document.getElementById("menu-btn");
+const sidebar = document.querySelector(".sidebar");
 
+menuBtn.onclick = () => {
+  sidebar.classList.toggle("open");
+if (window.innerWidth < 768) {
+  sidebar.classList.remove("open");
+}
+};
 let chats = {};
 let currentChatId = null;
 
