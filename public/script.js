@@ -87,7 +87,7 @@ function renderMessages() {
   chats[currentChatId].messages.forEach(m => {
     const div = document.createElement("div");
     div.className = "message " + (m.uiRole || m.role);
-    div.textContent = m.content;
+    div.innerHTML = marked.parse(m.content);
     chatBox.appendChild(div);
   });
 
@@ -111,12 +111,12 @@ function addMessage(role, content) {
 
 // ✨ TYPEWRITER EFFECT
 function typeText(element, text, speed = 20) {
-  element.textContent = "";
   let i = 0;
 
   function typing() {
-    if (i < text.length) {
-      element.textContent += text.charAt(i);
+    if (i <= text.length) {
+      const partial = text.slice(0, i);
+      element.innerHTML = marked.parse(partial);
       i++;
       chatBox.scrollTop = chatBox.scrollHeight;
       setTimeout(typing, speed);

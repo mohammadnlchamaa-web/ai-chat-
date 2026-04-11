@@ -234,3 +234,22 @@ body {
     width: 100%;
   }
 }
+pre {
+  background: #0f172a;
+  padding: 12px;
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+code {
+  color: #22c55e;
+  font-family: monospace;
+}
+
+p {
+  margin: 5px 0;
+}
+
+ul {
+  padding-left: 20px;
+}
