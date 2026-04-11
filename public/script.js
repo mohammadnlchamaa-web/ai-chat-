@@ -9,13 +9,15 @@ const chatForm = document.getElementById("chat-form");
 const menuBtn = document.getElementById("menu-btn");
 const sidebar = document.querySelector(".sidebar");
 
+// 📱 MOBILE MENU
 menuBtn?.addEventListener("click", () => {
   sidebar.classList.toggle("open");
 });
+
 let chats = {};
 let currentChatId = null;
 
-// CREATE CHAT
+// 🧠 CREATE CHAT
 function createChat() {
   const id = Date.now().toString();
 
@@ -29,7 +31,7 @@ function createChat() {
   renderMessages();
 }
 
-// RENDER SIDEBAR
+// 🧾 RENDER SIDEBAR
 function renderChats() {
   chatList.innerHTML = "";
 
@@ -48,6 +50,11 @@ function renderChats() {
       currentChatId = id;
       renderMessages();
       renderChats();
+
+      // 📱 close sidebar on mobile
+      if (window.innerWidth < 768) {
+        sidebar.classList.remove("open");
+      }
     };
 
     const del = document.createElement("button");
@@ -71,7 +78,7 @@ function renderChats() {
   });
 }
 
-// RENDER MESSAGES
+// 💬 RENDER MESSAGES
 function renderMessages() {
   chatBox.innerHTML = "";
 
@@ -79,10 +86,7 @@ function renderMessages() {
 
   chats[currentChatId].messages.forEach(m => {
     const div = document.createElement("div");
-
-    // UI class stays "ai" for styling BUT API uses "assistant"
     div.className = "message " + (m.uiRole || m.role);
-
     div.textContent = m.content;
     chatBox.appendChild(div);
   });
@@ -90,20 +94,22 @@ function renderMessages() {
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// ADD MESSAGE (FIXED)
+// ➕ ADD MESSAGE
 function addMessage(role, content) {
   if (!currentChatId || !chats[currentChatId]) return;
 
   const apiRole = role === "ai" ? "assistant" : role;
 
   chats[currentChatId].messages.push({
-    role: apiRole,     // 👈 THIS GOES TO API
-    uiRole: role,      // 👈 THIS IS FOR YOUR CSS
+    role: apiRole,
+    uiRole: role,
     content
   });
 
   renderMessages();
 }
+
+// ✨ TYPEWRITER EFFECT
 function typeText(element, text, speed = 20) {
   element.textContent = "";
   let i = 0;
@@ -112,35 +118,38 @@ function typeText(element, text, speed = 20) {
     if (i < text.length) {
       element.textContent += text.charAt(i);
       i++;
-      chatBox.scrollTop = chatBox.scrollHeight; // 👈 scroll while typing
+      chatBox.scrollTop = chatBox.scrollHeight;
       setTimeout(typing, speed);
     }
   }
-loading.remove();
+
   typing();
 }
-// SEND MESSAGE
+
+// 🚀 SEND MESSAGE
 async function sendMessage() {
   const message = input.value.trim();
   if (!message || !currentChatId) return;
 
+  // set title
   if (chats[currentChatId].messages.length === 0) {
     chats[currentChatId].title = message.slice(0, 20);
   }
 
   addMessage("user", message);
   input.value = "";
-const loading = document.createElement("div");
-loading.className = "message ai";
 
-loading.innerHTML = `
-  <div class="dots">
-    <span></span><span></span><span></span>
-  </div>
-`;
+  // 🔄 LOADING DOTS
+  const loading = document.createElement("div");
+  loading.className = "message ai";
+  loading.innerHTML = `
+    <div class="dots">
+      <span></span><span></span><span></span>
+    </div>
+  `;
+  chatBox.appendChild(loading);
+  chatBox.scrollTop = chatBox.scrollHeight;
 
-chatBox.appendChild(loading);
-chatBox.scrollTop = chatBox.scrollHeight;
   try {
     const res = await fetch("/chat", {
       method: "POST",
@@ -157,30 +166,38 @@ chatBox.scrollTop = chatBox.scrollHeight;
 
     const data = await res.json();
 
-    // create empty AI message first
-const div = document.createElement("div");
-div.className = "message ai";
-chatBox.appendChild(div);
+    // ❌ remove loading
+    loading.remove();
 
-// animate typing
-typeText(div, data.reply || "⚠️ No response");
+    if (!data.reply) {
+      addMessage("ai", "⚠️ Empty response");
+      return;
+    }
 
-// store after typing (optional but cleaner)
-chats[currentChatId].messages.push({
-  role: "assistant",
-  uiRole: "ai",
-  content: data.reply || "⚠️ No response"
-});
+    // ✨ create animated message
+    const div = document.createElement("div");
+    div.className = "message ai";
+    chatBox.appendChild(div);
+
+    typeText(div, data.reply);
+
+    // 💾 store message
+    chats[currentChatId].messages.push({
+      role: "assistant",
+      uiRole: "ai",
+      content: data.reply
+    });
 
   } catch (err) {
     console.error(err);
+    loading.remove();
     addMessage("ai", "⚠️ Server not responding");
   }
 
   renderChats();
 }
 
-// EVENTS
+// 🎯 EVENTS
 chatForm.addEventListener("submit", (e) => {
   e.preventDefault();
   sendMessage();
@@ -189,5 +206,5 @@ chatForm.addEventListener("submit", (e) => {
 sendBtn.onclick = sendMessage;
 newChatBtn.onclick = createChat;
 
-// START
+// 🚀 START
 createChat();
