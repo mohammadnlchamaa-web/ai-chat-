@@ -104,7 +104,21 @@ function addMessage(role, content) {
 
   renderMessages();
 }
+function typeText(element, text, speed = 20) {
+  element.textContent = "";
+  let i = 0;
 
+  function typing() {
+    if (i < text.length) {
+      element.textContent += text.charAt(i);
+      i++;
+      chatBox.scrollTop = chatBox.scrollHeight; // 👈 scroll while typing
+      setTimeout(typing, speed);
+    }
+  }
+loading.remove();
+  typing();
+}
 // SEND MESSAGE
 async function sendMessage() {
   const message = input.value.trim();
@@ -116,7 +130,17 @@ async function sendMessage() {
 
   addMessage("user", message);
   input.value = "";
+const loading = document.createElement("div");
+loading.className = "message ai";
 
+loading.innerHTML = `
+  <div class="dots">
+    <span></span><span></span><span></span>
+  </div>
+`;
+
+chatBox.appendChild(loading);
+chatBox.scrollTop = chatBox.scrollHeight;
   try {
     const res = await fetch("/chat", {
       method: "POST",
@@ -133,7 +157,20 @@ async function sendMessage() {
 
     const data = await res.json();
 
-    addMessage("ai", data.reply || "⚠️ No response");
+    // create empty AI message first
+const div = document.createElement("div");
+div.className = "message ai";
+chatBox.appendChild(div);
+
+// animate typing
+typeText(div, data.reply || "⚠️ No response");
+
+// store after typing (optional but cleaner)
+chats[currentChatId].messages.push({
+  role: "assistant",
+  uiRole: "ai",
+  content: data.reply || "⚠️ No response"
+});
 
   } catch (err) {
     console.error(err);
