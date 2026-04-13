@@ -152,19 +152,26 @@ async function sendMessage() {
 
   try {
     const res = await fetch("/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        messages: chats[currentChatId].messages.map(m => ({
-          role: m.role,
-          content: m.content
-        }))
-      })
-    });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    messages: chats[currentChatId].messages.map(m => ({
+      role: m.role,
+      content: m.content
+    }))
+  })
+});
 
-    const data = await res.json();
+console.log("STATUS:", res.status);
+
+const text = await res.text();
+console.log("RAW RESPONSE:", text);
+
+const data = JSON.parse(text);
+
+   
 
     // ❌ remove loading
     loading.remove();
