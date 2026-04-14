@@ -24,7 +24,7 @@ body {
    SIDEBAR
 ======================= */
 .sidebar {
-  width: 230px;
+ 
   background: rgba(15,23,42,0.8);
   backdrop-filter: blur(20px);
   padding: 15px;
@@ -55,12 +55,12 @@ body {
 ======================= */
 .main {
   flex: 1;
-  width: 100vw !important;
+  width: 100%;
+  margin-left: 0 !important; /* 🔥 kill any shift */
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
-
 /* CHAT BOX */
 #chat-box {
   flex: 1;
@@ -199,15 +199,22 @@ body {
   }
 
   .sidebar {
-    position: fixed !important;
-    top: 0;
-    left: 0;
-    transform: translateX(-100%) !important; /* FORCE HIDE */
-    width: 260px;
-    height: 100%;
-    z-index: 1500;
-    transition: transform 0.3s ease;
-  }
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 260px;
+  height: 100%;
+  background: rgba(15,23,42,0.95);
+  z-index: 2000;
+
+  transform: translateX(-100%); /* hidden */
+  transition: transform 0.3s ease;
+}
+
+/* when open */
+.sidebar.open {
+  transform: translateX(0);
+}
 
   .sidebar.open {
     transform: translateX(0) !important; /* SHOW ONLY WHEN OPEN */
@@ -262,4 +269,13 @@ body {
     transform: translateX(0);
   }
 
+}
+.app {
+  display: flex;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body {
+  overflow-x: hidden;
 }
