@@ -21,9 +21,10 @@ function toggleSidebar(open) {
 }
 
 menuBtn?.addEventListener("click", () => {
-  toggleSidebar(!sidebar.classList.contains("open"));
+  if (window.innerWidth <= 768) {
+    toggleSidebar(!sidebar.classList.contains("open"));
+  }
 });
-
 overlay?.addEventListener("click", () => {
   toggleSidebar(false);
 });
