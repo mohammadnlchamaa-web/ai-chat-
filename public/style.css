@@ -1,8 +1,14 @@
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
+  padding: 0;
   font-family: "Segoe UI", sans-serif;
   background: radial-gradient(circle at top, #1e293b, #020617);
   color: white;
+  overflow-x: hidden;
 }
 
 /* =======================
@@ -11,6 +17,7 @@ body {
 .app {
   display: flex;
   height: 100vh;
+  height: 100dvh;
 }
 
 /* =======================
@@ -22,7 +29,6 @@ body {
   backdrop-filter: blur(20px);
   padding: 15px;
   border-right: 1px solid rgba(255,255,255,0.05);
-  transition: left 0.3s ease;
 }
 
 /* NEW CHAT BUTTON */
@@ -35,13 +41,7 @@ body {
   color: white;
   font-weight: bold;
   cursor: pointer;
-  transition: 0.3s;
   box-shadow: 0 0 20px rgba(34,197,94,0.4);
-}
-
-#new-chat-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 40px rgba(34,197,94,0.7);
 }
 
 /* =======================
@@ -51,7 +51,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding-bottom: 80px; /* FIX: prevents input overlap */
+  padding-bottom: 120px;
 }
 
 /* CHAT BOX */
@@ -62,7 +62,6 @@ body {
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
-  scroll-behavior: smooth;
 }
 
 /* =======================
@@ -72,20 +71,15 @@ body {
   max-width: 70%;
   padding: 12px 16px;
   border-radius: 16px;
-  animation: fadeIn 0.3s ease;
   line-height: 1.5;
   word-wrap: break-word;
-  overflow-wrap: break-word;
 }
 
-/* USER */
 .user {
   align-self: flex-end;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  box-shadow: 0 0 20px rgba(99,102,241,0.5);
 }
 
-/* AI */
 .ai {
   align-self: flex-start;
   background: rgba(255,255,255,0.08);
@@ -98,11 +92,12 @@ body {
 .input-area {
   display: flex;
   padding: 12px;
-  background: rgba(15,23,42,0.9);
+  background: rgba(15,23,42,0.95);
   position: fixed;
   bottom: 0;
   left: 0;
-  width: 100%;
+  right: 0;
+  z-index: 1000;
 }
 
 #user-input {
@@ -113,6 +108,7 @@ body {
   outline: none;
   background: #0f172a;
   color: white;
+  font-size: 16px;
 }
 
 #send-btn {
@@ -123,64 +119,6 @@ body {
   background: linear-gradient(135deg, #3b82f6, #6366f1);
   color: white;
   cursor: pointer;
-  transition: 0.3s;
-}
-
-#send-btn:hover {
-  transform: scale(1.05);
-}
-
-/* =======================
-   LOADING DOTS
-======================= */
-.dots {
-  display: flex;
-  gap: 5px;
-}
-
-.dots span {
-  width: 6px;
-  height: 6px;
-  background: white;
-  border-radius: 50%;
-  animation: bounce 1.2s infinite;
-}
-
-.dots span:nth-child(2) { animation-delay: 0.2s; }
-.dots span:nth-child(3) { animation-delay: 0.4s; }
-
-/* =======================
-   CHAT LIST
-======================= */
-.chat-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px;
-  background: #1f2937;
-  margin-bottom: 6px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.chat-item:hover {
-  background: #374151;
-}
-
-.chat-item.active {
-  background: #4b5563;
-}
-
-.chat-item button {
-  background: transparent;
-  border: none;
-  color: red;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.chat-item:hover button {
-  opacity: 1;
 }
 
 /* =======================
@@ -198,43 +136,6 @@ body {
   background: #1f2937;
   color: white;
   font-size: 20px;
-  cursor: pointer;
-}
-
-/* =======================
-   ANIMATIONS
-======================= */
-@keyframes bounce {
-  0%,100% { opacity: 0.3; transform: scale(0.6); }
-  50% { opacity: 1; transform: scale(1); }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* =======================
-   CODE STYLING (AI OUTPUT)
-======================= */
-pre {
-  background: #0f172a;
-  padding: 12px;
-  border-radius: 10px;
-  overflow-x: auto;
-}
-
-code {
-  color: #22c55e;
-  font-family: monospace;
-}
-
-p {
-  margin: 5px 0;
-}
-
-ul {
-  padding-left: 20px;
 }
 
 /* =======================
@@ -257,6 +158,8 @@ ul {
     width: 260px;
     height: 100%;
     z-index: 1500;
+    transition: left 0.3s ease;
+    box-shadow: 10px 0 30px rgba(0,0,0,0.5);
   }
 
   .sidebar.open {
@@ -269,6 +172,18 @@ ul {
 
   #chat-box {
     padding-top: 60px;
-    padding-bottom: 100px;
+    padding-bottom: 140px;
   }
+
+  .message {
+    max-width: 85%;
+  }
+}
+
+/* =======================
+   ANIMATIONS
+======================= */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
