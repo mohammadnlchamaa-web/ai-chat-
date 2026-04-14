@@ -1,43 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#1e293b">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#1e293b" />
+
   <title>AI Chat</title>
-  <link rel="icon" href="favicon.ico">
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="icon" href="favicon.ico" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
 
-<noscript>Please enable JavaScript to use this app.</noscript>
-
 <div class="app">
 
-  <aside class="sidebar">
-    <div id="overlay"></div>
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
     <button id="new-chat-btn">+ New Chat</button>
     <div id="chat-list"></div>
   </aside>
 
+  <!-- OVERLAY -->
+  <div id="overlay"></div>
+
+  <!-- MAIN -->
   <main class="main">
 
     <button id="menu-btn">☰</button>
 
-    <section id="chat-box" aria-live="polite"></section>
+    <section id="chat-box"></section>
 
     <form class="input-area" id="chat-form">
-      <label for="user-input" hidden>Message</label>
-
-      <input
-        id="user-input"
-        type="text"
-        placeholder="Type message..."
-        required
-      >
-
+      <input id="user-input" type="text" placeholder="Type message..." required />
       <button type="submit" id="send-btn">Send</button>
     </form>
 

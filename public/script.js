@@ -7,13 +7,26 @@ const chatList = document.getElementById("chat-list");
 const chatForm = document.getElementById("chat-form");
 const menuBtn = document.getElementById("menu-btn");
 const sidebar = document.querySelector(".sidebar");
-
-menuBtn?.addEventListener("click", () => {
-  sidebar.classList.toggle("open");
-});
+const overlay = document.getElementById("overlay");
 
 let chats = {};
 let currentChatId = null;
+
+/* =======================
+   SIDEBAR TOGGLE
+======================= */
+function toggleSidebar(open) {
+  sidebar.classList.toggle("open", open);
+  overlay.classList.toggle("show", open);
+}
+
+menuBtn?.addEventListener("click", () => {
+  toggleSidebar(!sidebar.classList.contains("open"));
+});
+
+overlay?.addEventListener("click", () => {
+  toggleSidebar(false);
+});
 
 /* =======================
    CREATE CHAT
@@ -42,9 +55,7 @@ function renderChats() {
     const chatItem = document.createElement("div");
     chatItem.className = "chat-item";
 
-    if (id === currentChatId) {
-      chatItem.classList.add("active");
-    }
+    if (id === currentChatId) chatItem.classList.add("active");
 
     const title = document.createElement("span");
     title.textContent = chats[id].title;
@@ -68,10 +79,7 @@ function renderChats() {
       currentChatId = id;
       renderChats();
       renderMessages();
-
-      if (window.innerWidth < 768) {
-        sidebar.classList.remove("open");
-      }
+      toggleSidebar(false);
     };
 
     chatItem.appendChild(title);
@@ -90,7 +98,7 @@ function renderMessages() {
 
   chats[currentChatId].messages.forEach(m => {
     const div = document.createElement("div");
-    div.className = "message " + (m.uiRole || m.role);
+    div.className = "message " + m.uiRole;
     div.innerHTML = marked.parse(m.content);
     chatBox.appendChild(div);
   });
@@ -102,12 +110,10 @@ function renderMessages() {
    ADD MESSAGE
 ======================= */
 function addMessage(role, content) {
-  if (!currentChatId || !chats[currentChatId]) return;
-
-  const apiRole = role === "ai" ? "assistant" : role;
+  if (!currentChatId) return;
 
   chats[currentChatId].messages.push({
-    role: apiRole,
+    role: role === "ai" ? "assistant" : role,
     uiRole: role,
     content
   });
@@ -116,21 +122,21 @@ function addMessage(role, content) {
 }
 
 /* =======================
-   TYPEWRITER EFFECT
+   TYPEWRITER (FIXED)
 ======================= */
 function typeText(element, text, speed = 15) {
   let i = 0;
 
-  function typing() {
+  function step() {
     if (i <= text.length) {
       element.innerHTML = marked.parse(text.slice(0, i));
       i++;
       chatBox.scrollTop = chatBox.scrollHeight;
-      setTimeout(typing, speed);
+      setTimeout(step, speed);
     }
   }
 
-  typing();
+  step();
 }
 
 /* =======================
@@ -142,7 +148,6 @@ async function sendMessage() {
 
   const chat = chats[currentChatId];
 
-  // set title
   if (chat.messages.length === 0) {
     chat.title = message.slice(0, 20);
   }
@@ -150,23 +155,17 @@ async function sendMessage() {
   addMessage("user", message);
   input.value = "";
 
-  // loading UI
   const loading = document.createElement("div");
   loading.className = "message ai";
-  loading.innerHTML = `
-    <div class="dots">
-      <span></span><span></span><span></span>
-    </div>
-  `;
+  loading.textContent = "Thinking...";
   chatBox.appendChild(loading);
+
   chatBox.scrollTop = chatBox.scrollHeight;
 
   try {
     const res = await fetch("/chat", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messages: chat.messages.map(m => ({
           role: m.role,
@@ -175,20 +174,7 @@ async function sendMessage() {
       })
     });
 
-    console.log("STATUS:", res.status);
-
-    const text = await res.text();
-    console.log("RAW RESPONSE:", text);
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      loading.remove();
-      addMessage("ai", "⚠️ Invalid server response");
-      return;
-    }
-
+    const data = await res.json();
     loading.remove();
 
     if (!data.reply) {
@@ -196,14 +182,12 @@ async function sendMessage() {
       return;
     }
 
-    // AI message element
     const div = document.createElement("div");
     div.className = "message ai";
     chatBox.appendChild(div);
 
     typeText(div, data.reply);
 
-    // store message ONCE (FIXED BUG)
     chat.messages.push({
       role: "assistant",
       uiRole: "ai",
@@ -233,22 +217,11 @@ newChatBtn.onclick = createChat;
    INIT
 ======================= */
 createChat();
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js")
-      .then(reg => console.log("SW registered 🔥"))
+      .then(() => console.log("SW registered 🔥"))
       .catch(err => console.log("SW failed:", err));
   });
 }
-
-const overlay = document.getElementById("overlay");
-
-menuBtn.onclick = () => {
-  sidebar.classList.toggle("open");
-  overlay.classList.toggle("show");
-};
-
-overlay.onclick = () => {
-  sidebar.classList.remove("open");
-  overlay.classList.remove("show");
-};

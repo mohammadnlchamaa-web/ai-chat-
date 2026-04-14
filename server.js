@@ -5,10 +5,18 @@ const path = require("path");
 
 const app = express();
 
+/* =========================
+   SAFETY CHECK
+========================= */
+if (!process.env.GROQ_API_KEY) {
+  console.error("❌ Missing GROQ_API_KEY in .env");
+}
+
+/* =========================
+   MIDDLEWARE
+========================= */
 app.use(cors());
 app.use(express.json());
-
-// serve frontend
 app.use(express.static(path.join(__dirname, "public")));
 
 /* =========================
@@ -18,14 +26,12 @@ app.post("/chat", async (req, res) => {
   try {
     const messages = req.body?.messages;
 
-    // validation (IMPORTANT)
     if (!Array.isArray(messages)) {
       return res.status(400).json({
         error: "Invalid messages format"
       });
     }
 
-    // timeout controller
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
 
@@ -47,17 +53,25 @@ app.post("/chat", async (req, res) => {
 
     clearTimeout(timeout);
 
+    const text = await response.text();
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error("❌ Non-JSON response from Groq:", text);
+      return res.status(500).json({
+        error: "Invalid API response"
+      });
+    }
+
     if (!response.ok) {
-  const text = await response.text();
-  console.error("❌ GROQ API ERROR:", text);
-
-  return res.status(500).json({
-    error: "Groq API failed",
-    details: text
-  });
-}
-
-    const data = await response.json();
+      console.error("❌ GROQ ERROR:", data);
+      return res.status(500).json({
+        error: "Groq API failed",
+        details: data
+      });
+    }
 
     return res.json({
       reply: data?.choices?.[0]?.message?.content || "No response"
@@ -67,13 +81,15 @@ app.post("/chat", async (req, res) => {
     console.error("SERVER ERROR:", err);
 
     return res.status(500).json({
-      error: "Server error"
+      error: err.name === "AbortError"
+        ? "Request timeout"
+        : "Server error"
     });
   }
 });
 
 /* =========================
-   FALLBACK ROUTE
+   PWA FALLBACK
 ========================= */
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
@@ -82,6 +98,8 @@ app.get("*", (req, res) => {
 /* =========================
    START SERVER
 ========================= */
-app.listen(3000, () =>
-  console.log("SERVER RUNNING 🔥 http://localhost:3000")
-);
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`SERVER RUNNING 🔥 http://localhost:${PORT}`);
+});
