@@ -1,7 +1,6 @@
 console.log("SCRIPT RUNNING 🔥");
 
 const input = document.getElementById("user-input");
-const sendBtn = document.getElementById("send-btn");
 const chatBox = document.getElementById("chat-box");
 const newChatBtn = document.getElementById("new-chat-btn");
 const chatList = document.getElementById("chat-list");
@@ -9,7 +8,6 @@ const chatForm = document.getElementById("chat-form");
 const menuBtn = document.getElementById("menu-btn");
 const sidebar = document.querySelector(".sidebar");
 
-// 📱 MOBILE MENU
 menuBtn?.addEventListener("click", () => {
   sidebar.classList.toggle("open");
 });
@@ -17,7 +15,9 @@ menuBtn?.addEventListener("click", () => {
 let chats = {};
 let currentChatId = null;
 
-// 🧠 CREATE CHAT
+/* =======================
+   CREATE CHAT
+======================= */
 function createChat() {
   const id = Date.now().toString();
 
@@ -27,11 +27,14 @@ function createChat() {
   };
 
   currentChatId = id;
+
   renderChats();
   renderMessages();
 }
 
-// 🧾 RENDER SIDEBAR
+/* =======================
+   RENDER CHAT LIST
+======================= */
 function renderChats() {
   chatList.innerHTML = "";
 
@@ -39,23 +42,12 @@ function renderChats() {
     const chatItem = document.createElement("div");
     chatItem.className = "chat-item";
 
-    const title = document.createElement("span");
-    title.textContent = chats[id].title;
-
     if (id === currentChatId) {
       chatItem.classList.add("active");
     }
 
-    chatItem.onclick = () => {
-      currentChatId = id;
-      renderMessages();
-      renderChats();
-
-      // 📱 close sidebar on mobile
-      if (window.innerWidth < 768) {
-        sidebar.classList.remove("open");
-      }
-    };
+    const title = document.createElement("span");
+    title.textContent = chats[id].title;
 
     const del = document.createElement("button");
     del.textContent = "✖";
@@ -72,13 +64,25 @@ function renderChats() {
       renderMessages();
     };
 
+    chatItem.onclick = () => {
+      currentChatId = id;
+      renderChats();
+      renderMessages();
+
+      if (window.innerWidth < 768) {
+        sidebar.classList.remove("open");
+      }
+    };
+
     chatItem.appendChild(title);
     chatItem.appendChild(del);
     chatList.appendChild(chatItem);
   });
 }
 
-// 💬 RENDER MESSAGES
+/* =======================
+   RENDER MESSAGES
+======================= */
 function renderMessages() {
   chatBox.innerHTML = "";
 
@@ -94,7 +98,9 @@ function renderMessages() {
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// ➕ ADD MESSAGE
+/* =======================
+   ADD MESSAGE
+======================= */
 function addMessage(role, content) {
   if (!currentChatId || !chats[currentChatId]) return;
 
@@ -109,14 +115,15 @@ function addMessage(role, content) {
   renderMessages();
 }
 
-// ✨ TYPEWRITER EFFECT
-function typeText(element, text, speed = 20) {
+/* =======================
+   TYPEWRITER EFFECT
+======================= */
+function typeText(element, text, speed = 15) {
   let i = 0;
 
   function typing() {
     if (i <= text.length) {
-      const partial = text.slice(0, i);
-      element.innerHTML = marked.parse(partial);
+      element.innerHTML = marked.parse(text.slice(0, i));
       i++;
       chatBox.scrollTop = chatBox.scrollHeight;
       setTimeout(typing, speed);
@@ -126,20 +133,24 @@ function typeText(element, text, speed = 20) {
   typing();
 }
 
-// 🚀 SEND MESSAGE
+/* =======================
+   SEND MESSAGE
+======================= */
 async function sendMessage() {
   const message = input.value.trim();
   if (!message || !currentChatId) return;
 
+  const chat = chats[currentChatId];
+
   // set title
-  if (chats[currentChatId].messages.length === 0) {
-    chats[currentChatId].title = message.slice(0, 20);
+  if (chat.messages.length === 0) {
+    chat.title = message.slice(0, 20);
   }
 
   addMessage("user", message);
   input.value = "";
 
-  // 🔄 LOADING DOTS
+  // loading UI
   const loading = document.createElement("div");
   loading.className = "message ai";
   loading.innerHTML = `
@@ -152,28 +163,32 @@ async function sendMessage() {
 
   try {
     const res = await fetch("/chat", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    messages: chats[currentChatId].messages.map(m => ({
-      role: m.role,
-      content: m.content
-    }))
-  })
-});
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        messages: chat.messages.map(m => ({
+          role: m.role,
+          content: m.content
+        }))
+      })
+    });
 
-console.log("STATUS:", res.status);
+    console.log("STATUS:", res.status);
 
-const text = await res.text();
-console.log("RAW RESPONSE:", text);
+    const text = await res.text();
+    console.log("RAW RESPONSE:", text);
 
-const data = JSON.parse(text);
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      loading.remove();
+      addMessage("ai", "⚠️ Invalid server response");
+      return;
+    }
 
-   
-
-    // ❌ remove loading
     loading.remove();
 
     if (!data.reply) {
@@ -181,37 +196,40 @@ const data = JSON.parse(text);
       return;
     }
 
-    // ✨ create animated message
+    // AI message element
     const div = document.createElement("div");
     div.className = "message ai";
     chatBox.appendChild(div);
 
     typeText(div, data.reply);
 
-    // 💾 store message
-    chats[currentChatId].messages.push({
+    // store message ONCE (FIXED BUG)
+    chat.messages.push({
       role: "assistant",
       uiRole: "ai",
       content: data.reply
     });
+
+    renderChats();
 
   } catch (err) {
     console.error(err);
     loading.remove();
     addMessage("ai", "⚠️ Server not responding");
   }
-
-  renderChats();
 }
 
-// 🎯 EVENTS
+/* =======================
+   EVENTS
+======================= */
 chatForm.addEventListener("submit", (e) => {
   e.preventDefault();
   sendMessage();
 });
 
-sendBtn.onclick = sendMessage;
 newChatBtn.onclick = createChat;
 
-// 🚀 START
+/* =======================
+   INIT
+======================= */
 createChat();

@@ -2,11 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>AI Chat</title>
+  <link rel="icon" href="favicon.ico">
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+
+<noscript>Please enable JavaScript to use this app.</noscript>
 
 <div class="app">
 
@@ -16,18 +21,30 @@
   </aside>
 
   <main class="main">
-<button id="menu-btn">☰</button>
-    <section id="chat-box"></section>
+
+    <button id="menu-btn">☰</button>
+
+    <section id="chat-box" aria-live="polite"></section>
 
     <form class="input-area" id="chat-form">
-      <input id="user-input" type="text" placeholder="Type message...">
+      <label for="user-input" hidden>Message</label>
+
+      <input
+        id="user-input"
+        type="text"
+        placeholder="Type message..."
+        required
+      >
+
       <button type="submit" id="send-btn">Send</button>
     </form>
 
   </main>
 
 </div>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="script.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
+<script src="script.js" defer></script>
+
 </body>
 </html>

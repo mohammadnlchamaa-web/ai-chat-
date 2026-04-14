@@ -5,18 +5,24 @@ body {
   color: white;
 }
 
+/* =======================
+   APP LAYOUT
+======================= */
 .app {
   display: flex;
   height: 100vh;
 }
 
-/* SIDEBAR */
+/* =======================
+   SIDEBAR
+======================= */
 .sidebar {
   width: 230px;
   background: rgba(15,23,42,0.8);
   backdrop-filter: blur(20px);
   padding: 15px;
   border-right: 1px solid rgba(255,255,255,0.05);
+  transition: left 0.3s ease;
 }
 
 /* NEW CHAT BUTTON */
@@ -38,14 +44,17 @@ body {
   box-shadow: 0 0 40px rgba(34,197,94,0.7);
 }
 
-/* MAIN */
+/* =======================
+   MAIN AREA
+======================= */
 .main {
   flex: 1;
   display: flex;
   flex-direction: column;
+  padding-bottom: 80px; /* FIX: prevents input overlap */
 }
 
-/* CHAT */
+/* CHAT BOX */
 #chat-box {
   flex: 1;
   padding: 20px;
@@ -53,14 +62,20 @@ body {
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
+  scroll-behavior: smooth;
 }
 
-/* MESSAGES */
+/* =======================
+   MESSAGES
+======================= */
 .message {
   max-width: 70%;
   padding: 12px 16px;
   border-radius: 16px;
   animation: fadeIn 0.3s ease;
+  line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* USER */
@@ -77,11 +92,17 @@ body {
   border: 1px solid rgba(255,255,255,0.1);
 }
 
-/* INPUT */
+/* =======================
+   INPUT AREA
+======================= */
 .input-area {
   display: flex;
   padding: 12px;
   background: rgba(15,23,42,0.9);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
 }
 
 #user-input {
@@ -90,6 +111,8 @@ body {
   border-radius: 12px;
   border: none;
   outline: none;
+  background: #0f172a;
+  color: white;
 }
 
 #send-btn {
@@ -107,7 +130,9 @@ body {
   transform: scale(1.05);
 }
 
-/* THINKING DOTS */
+/* =======================
+   LOADING DOTS
+======================= */
 .dots {
   display: flex;
   gap: 5px;
@@ -124,15 +149,9 @@ body {
 .dots span:nth-child(2) { animation-delay: 0.2s; }
 .dots span:nth-child(3) { animation-delay: 0.4s; }
 
-@keyframes bounce {
-  0%,100% { opacity: 0.3; transform: scale(0.6); }
-  50% { opacity: 1; transform: scale(1); }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+/* =======================
+   CHAT LIST
+======================= */
 .chat-item {
   display: flex;
   justify-content: space-between;
@@ -147,31 +166,26 @@ body {
   background: #374151;
 }
 
-.chat-item button {
-  background: transparent;
-  border: none;
-  color: red;
-  cursor: pointer;
-}
-#user-input {
-  background: #0f172a;
-  color: white;
-}
-
 .chat-item.active {
   background: #4b5563;
 }
 
 .chat-item button {
+  background: transparent;
+  border: none;
+  color: red;
+  cursor: pointer;
   opacity: 0;
-  transition: 0.2s;
+  transition: opacity 0.2s ease;
 }
 
 .chat-item:hover button {
   opacity: 1;
 }
-/* ===== MOBILE CHATGPT FIX ===== */
 
+/* =======================
+   MOBILE MENU
+======================= */
 #menu-btn {
   display: none;
   position: fixed;
@@ -187,53 +201,22 @@ body {
   cursor: pointer;
 }
 
-/* MOBILE MODE */
-@media (max-width: 768px) {
-
-  /* SHOW HAMBURGER */
-  #menu-btn {
-    display: block;
-  }
-
-  /* FULL SCREEN APP */
-  .app {
-    flex-direction: column;
-  }
-
-  /* SIDEBAR HIDDEN BY DEFAULT */
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: -260px;
-    width: 260px;
-    height: 100%;
-    z-index: 1500;
-    transition: 0.3s ease;
-  }
-
-  /* SIDEBAR OPEN */
-  .sidebar.open {
-    left: 0;
-  }
-
-  /* CHAT FULL SCREEN */
-  .main {
-    width: 100%;
-  }
-
-  #chat-box {
-    padding-top: 60px;
-    padding-bottom: 80px;
-  }
-
-  /* INPUT FIXED LIKE CHATGPT */
-  .input-area {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-  }
+/* =======================
+   ANIMATIONS
+======================= */
+@keyframes bounce {
+  0%,100% { opacity: 0.3; transform: scale(0.6); }
+  50% { opacity: 1; transform: scale(1); }
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =======================
+   CODE STYLING (AI OUTPUT)
+======================= */
 pre {
   background: #0f172a;
   padding: 12px;
@@ -252,4 +235,40 @@ p {
 
 ul {
   padding-left: 20px;
+}
+
+/* =======================
+   MOBILE RESPONSIVE
+======================= */
+@media (max-width: 768px) {
+
+  #menu-btn {
+    display: block;
+  }
+
+  .app {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -260px;
+    width: 260px;
+    height: 100%;
+    z-index: 1500;
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  .main {
+    width: 100%;
+  }
+
+  #chat-box {
+    padding-top: 60px;
+    padding-bottom: 100px;
+  }
 }
