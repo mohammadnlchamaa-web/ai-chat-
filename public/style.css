@@ -103,11 +103,9 @@ body {
   display: flex;
   padding: 10px;
   background: rgba(15,23,42,0.95);
-  position: fixed;
+  position: sticky;   /* 🔥 THIS FIXES OVERLAP */
   bottom: 0;
-  left: 0;
   width: 100%;
-  z-index: 1000;
 }
 
 #user-input {
@@ -223,4 +221,45 @@ body {
   .message {
     max-width: 85%;
   }
+}
+/* ===== OVERLAY ===== */
+#overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.3s;
+  z-index: 1400;
+}
+
+#overlay.show {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* ===== SIDEBAR FIX ===== */
+.sidebar {
+  z-index: 1500;
+}
+
+@media (max-width: 768px) {
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    transform: translateX(-100%);
+    width: 260px;
+    height: 100%;
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
 }

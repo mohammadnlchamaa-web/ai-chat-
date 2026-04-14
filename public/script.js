@@ -240,3 +240,15 @@ if ("serviceWorker" in navigator) {
       .catch(err => console.log("SW failed:", err));
   });
 }
+
+const overlay = document.getElementById("overlay");
+
+menuBtn.onclick = () => {
+  sidebar.classList.toggle("open");
+  overlay.classList.toggle("show");
+};
+
+overlay.onclick = () => {
+  sidebar.classList.remove("open");
+  overlay.classList.remove("show");
+};
