@@ -1,23 +1,61 @@
 console.log("SCRIPT RUNNING 🔥");
 
+/* =======================
+   ELEMENTS
+======================= */
 const input = document.getElementById("user-input");
 const chatBox = document.getElementById("chat-box");
 const newChatBtn = document.getElementById("new-chat-btn");
 const chatList = document.getElementById("chat-list");
-const chatForm = document.getElementById("chat-form");
 const menuBtn = document.getElementById("menu-btn");
 const sidebar = document.querySelector(".sidebar");
 const overlay = document.getElementById("overlay");
+const homeScreen = document.getElementById("home-screen");
+const homeInput = document.getElementById("home-input");
 
+/* =======================
+   STATE
+======================= */
 let chats = {};
 let currentChatId = null;
+let titleUpdateTimeout = null;
+
+/* =======================
+   HOME INPUT (ENTER FIX)
+======================= */
+if (homeInput) {
+  homeInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+
+      const value = homeInput.value.trim();
+      if (!value) return;
+
+      input.value = value;
+      homeInput.value = "";
+      sendMessage();
+    }
+  });
+}
+
+/* =======================
+   HELPERS
+======================= */
+function getCurrentChat() {
+  return chats[currentChatId];
+}
+
+/* =======================
+   INIT STATE
+======================= */
+document.body.classList.add("home");
 
 /* =======================
    SIDEBAR TOGGLE
 ======================= */
 function toggleSidebar(open) {
-  sidebar.classList.toggle("open", open);
-  overlay.classList.toggle("show", open);
+  sidebar?.classList.toggle("open", open);
+  overlay?.classList.toggle("show", open);
 }
 
 menuBtn?.addEventListener("click", () => {
@@ -25,18 +63,17 @@ menuBtn?.addEventListener("click", () => {
     toggleSidebar(!sidebar.classList.contains("open"));
   }
 });
-overlay?.addEventListener("click", () => {
-  toggleSidebar(false);
-});
+
+overlay?.addEventListener("click", () => toggleSidebar(false));
 
 /* =======================
    CREATE CHAT
 ======================= */
-function createChat() {
+function createChat(initialMessage = "") {
   const id = Date.now().toString();
 
   chats[id] = {
-    title: "New Chat",
+    title: initialMessage ? initialMessage.slice(0, 20) : "New Chat",
     messages: []
   };
 
@@ -47,7 +84,7 @@ function createChat() {
 }
 
 /* =======================
-   RENDER CHAT LIST
+   RENDER CHATS
 ======================= */
 function renderChats() {
   chatList.innerHTML = "";
@@ -68,8 +105,14 @@ function renderChats() {
       e.stopPropagation();
       delete chats[id];
 
+      if (!Object.keys(chats).length) {
+        currentChatId = null;
+        chatBox.innerHTML = "";
+        return;
+      }
+
       if (currentChatId === id) {
-        currentChatId = Object.keys(chats)[0] || null;
+        currentChatId = Object.keys(chats)[0];
       }
 
       renderChats();
@@ -95,12 +138,17 @@ function renderChats() {
 function renderMessages() {
   chatBox.innerHTML = "";
 
-  if (!currentChatId || !chats[currentChatId]) return;
+  const chat = getCurrentChat();
+  if (!chat) return;
 
-  chats[currentChatId].messages.forEach(m => {
+  chat.messages.forEach(m => {
     const div = document.createElement("div");
     div.className = "message " + m.uiRole;
-    div.innerHTML = marked.parse(m.content);
+
+    div.innerHTML = window.marked
+      ? marked.parse(m.content)
+      : m.content;
+
     chatBox.appendChild(div);
   });
 
@@ -111,9 +159,10 @@ function renderMessages() {
    ADD MESSAGE
 ======================= */
 function addMessage(role, content) {
-  if (!currentChatId) return;
+  const chat = getCurrentChat();
+  if (!chat) return;
 
-  chats[currentChatId].messages.push({
+  chat.messages.push({
     role: role === "ai" ? "assistant" : role,
     uiRole: role,
     content
@@ -123,18 +172,22 @@ function addMessage(role, content) {
 }
 
 /* =======================
-   TYPEWRITER (FIXED)
+   TYPEWRITER
 ======================= */
-function typeText(element, text, speed = 15) {
+function typeText(element, text, speed = 12) {
   let i = 0;
 
   function step() {
-    if (i <= text.length) {
-      element.innerHTML = marked.parse(text.slice(0, i));
-      i++;
-      chatBox.scrollTop = chatBox.scrollHeight;
-      setTimeout(step, speed);
-    }
+    if (i > text.length) return;
+
+    element.innerHTML = window.marked
+      ? marked.parse(text.slice(0, i))
+      : text.slice(0, i);
+
+    i++;
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    setTimeout(step, speed);
   }
 
   step();
@@ -145,20 +198,29 @@ function typeText(element, text, speed = 15) {
 ======================= */
 async function sendMessage() {
   const message = input.value.trim();
-  if (!message || !currentChatId) return;
+  if (!message) return;
 
-  const chat = chats[currentChatId];
-
-  if (chat.messages.length === 0) {
-    chat.title = message.slice(0, 20);
+  if (!currentChatId || !chats[currentChatId]) {
+    createChat(message);
   }
+
+  const chat = getCurrentChat();
+
+  document.body.classList.remove("home");
+  homeScreen?.classList.add("hidden");
 
   addMessage("user", message);
   input.value = "";
 
+  triggerTitleUpdate();
+
   const loading = document.createElement("div");
   loading.className = "message ai";
-  loading.textContent = "Thinking...";
+  loading.innerHTML = `
+    <div class="dots">
+      <span></span><span></span><span></span>
+    </div>
+  `;
   chatBox.appendChild(loading);
 
   chatBox.scrollTop = chatBox.scrollHeight;
@@ -196,6 +258,7 @@ async function sendMessage() {
     });
 
     renderChats();
+    triggerTitleUpdate();
 
   } catch (err) {
     console.error(err);
@@ -205,24 +268,90 @@ async function sendMessage() {
 }
 
 /* =======================
-   EVENTS
+   FORM EVENTS
 ======================= */
-chatForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  sendMessage();
-});
+function bindChatForm() {
+  const chatForm = document.getElementById("chat-form");
+  if (!chatForm) return;
 
-newChatBtn.onclick = createChat;
+  chatForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    sendMessage();
+  });
+}
 
 /* =======================
    INIT
 ======================= */
-createChat();
+window.addEventListener("DOMContentLoaded", () => {
+  console.log("INIT READY 🔥");
+  createChat();
+  bindChatForm();
+});
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js")
-      .then(() => console.log("SW registered 🔥"))
-      .catch(err => console.log("SW failed:", err));
-  });
+/* =======================
+   AI TITLE SYSTEM (FIXED)
+======================= */
+async function generateAITitle(chat) {
+  try {
+    const messages = chat.messages.slice(0, 8);
+
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "system",
+            content: `
+Generate a concise chat title (max 3 words).
+
+Strict rules:
+- 1 to 3 words only
+- No punctuation
+- No emojis
+- No filler words
+- Focus on main topic only
+
+Examples:
+"Fix CSS Layout"
+"AI Chat App"
+"Math Homework Help"
+`
+          },
+          ...messages.map(m => ({
+            role: m.role,
+            content: m.content
+          })),
+          {
+            role: "user",
+            content: "Generate a short title for this conversation."
+          }
+        ]
+      })
+    });
+
+    const data = await res.json();
+    return data.reply?.trim() || "New Chat";
+
+  } catch (err) {
+    console.error("Title generation failed:", err);
+    return "New Chat";
+  }
+}
+
+/* =======================
+   TITLE UPDATER (FIXED)
+======================= */
+function triggerTitleUpdate() {
+  const chat = getCurrentChat();
+  if (!chat) return;
+
+  clearTimeout(titleUpdateTimeout);
+
+  titleUpdateTimeout = setTimeout(async () => {
+    const newTitle = await generateAITitle(chat);
+    chat.title = newTitle;
+    renderChats();
+  }, 1200);
 }

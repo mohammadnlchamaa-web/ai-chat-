@@ -1,4 +1,5 @@
 require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -16,11 +17,12 @@ if (!process.env.GROQ_API_KEY) {
    MIDDLEWARE
 ========================= */
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
+
 app.use(express.static(path.join(__dirname, "public")));
 
 /* =========================
-   CHAT ROUTE
+   GROQ CHAT ROUTE
 ========================= */
 app.post("/chat", async (req, res) => {
   try {
@@ -29,6 +31,12 @@ app.post("/chat", async (req, res) => {
     if (!Array.isArray(messages)) {
       return res.status(400).json({
         error: "Invalid messages format"
+      });
+    }
+
+    if (!process.env.GROQ_API_KEY) {
+      return res.status(500).json({
+        error: "Missing GROQ_API_KEY"
       });
     }
 
@@ -41,29 +49,39 @@ app.post("/chat", async (req, res) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`
         },
         body: JSON.stringify({
-          model: "llama-3.1-8b-instant",
-          messages
-        }),
+  model: "llama-3.1-8b-instant",
+  messages: [
+    {
+      role: "system",
+      content: `
+You are a helpful AI assistant.
+
+Formatting rules:
+- You can use bullet points
+- You can use numbered lists
+- You can use emojis when helpful
+- Keep responses clean and readable
+- Use markdown formatting properly
+You can format responses using markdown:
+- Use headings (#, ##, ###) when helpful
+- Use bullet points and numbered lists
+- Use emojis to improve clarity
+- Structure answers clearly
+      `
+    },
+    ...messages
+  ]
+}),
         signal: controller.signal
       }
     );
 
     clearTimeout(timeout);
 
-    const text = await response.text();
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      console.error("❌ Non-JSON response from Groq:", text);
-      return res.status(500).json({
-        error: "Invalid API response"
-      });
-    }
+    const data = await response.json().catch(() => null);
 
     if (!response.ok) {
       console.error("❌ GROQ ERROR:", data);
@@ -73,23 +91,39 @@ app.post("/chat", async (req, res) => {
       });
     }
 
-    return res.json({
-      reply: data?.choices?.[0]?.message?.content || "No response"
-    });
+    const reply = data?.choices?.[0]?.message?.content;
+
+    if (!reply) {
+      return res.status(500).json({
+        error: "Empty model response"
+      });
+    }
+
+    return res.json({ reply });
 
   } catch (err) {
     console.error("SERVER ERROR:", err);
 
+    const isTimeout = err.name === "AbortError";
+
     return res.status(500).json({
-      error: err.name === "AbortError"
-        ? "Request timeout"
-        : "Server error"
+      error: isTimeout ? "Request timeout" : "Server error"
     });
   }
 });
 
 /* =========================
-   PWA FALLBACK
+   HEALTH CHECK (NEW)
+========================= */
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    time: new Date().toISOString()
+  });
+});
+
+/* =========================
+   CATCH-ALL (FIXED ORDER SAFETY)
 ========================= */
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
