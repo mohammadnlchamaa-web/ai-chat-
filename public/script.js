@@ -1,79 +1,80 @@
 console.log("SCRIPT RUNNING 🔥");
 
 /* =======================
-   ELEMENTS
-======================= */
-const input = document.getElementById("user-input");
-const chatBox = document.getElementById("chat-box");
-const newChatBtn = document.getElementById("new-chat-btn");
-const chatList = document.getElementById("chat-list");
-const menuBtn = document.getElementById("menu-btn");
-const sidebar = document.querySelector(".sidebar");
-const overlay = document.getElementById("overlay");
-const homeScreen = document.getElementById("home-screen");
-const homeInput = document.getElementById("home-input");
-
-/* =======================
    STATE
 ======================= */
 let chats = {};
 let currentChatId = null;
-let titleUpdateTimeout = null;
+let mode = "chat";
+let user = localStorage.getItem("user");
 
 /* =======================
-   HOME INPUT (ENTER FIX)
+   LOGIN
 ======================= */
-if (homeInput) {
-  homeInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-
-      const value = homeInput.value.trim();
-      if (!value) return;
-
-      input.value = value;
-      homeInput.value = "";
-      sendMessage();
-    }
-  });
+if (!user) {
+  user = prompt("Enter your name:");
+  localStorage.setItem("user", user);
 }
 
-/* =======================
-   HELPERS
-======================= */
-function getCurrentChat() {
-  return chats[currentChatId];
-}
+chats = JSON.parse(localStorage.getItem("chats_" + user)) || {};
 
 /* =======================
-   INIT STATE
+   ELEMENTS
 ======================= */
-document.body.classList.add("home");
+const input = document.getElementById("user-input");
+const chatBox = document.getElementById("chat-box");
+const chatList = document.getElementById("chat-list");
+const homeScreen = document.getElementById("home-screen");
+const homeInput = document.getElementById("home-input");
+const sidebar = document.querySelector(".sidebar");
+const overlay = document.getElementById("overlay");
+const menuBtn = document.getElementById("menu-btn");
+const newChatBtn = document.getElementById("new-chat-btn");
 
 /* =======================
-   SIDEBAR TOGGLE
+   SIDEBAR
 ======================= */
-function toggleSidebar(open) {
-  sidebar?.classList.toggle("open", open);
-  overlay?.classList.toggle("show", open);
-}
-
 menuBtn?.addEventListener("click", () => {
-  if (window.innerWidth <= 768) {
-    toggleSidebar(!sidebar.classList.contains("open"));
-  }
+  sidebar.classList.toggle("open");
+  overlay?.classList.toggle("show");
 });
 
-overlay?.addEventListener("click", () => toggleSidebar(false));
+overlay?.addEventListener("click", () => {
+  sidebar.classList.remove("open");
+  overlay?.classList.remove("show");
+});
 
 /* =======================
-   CREATE CHAT
+   MODE SYSTEM (FIXED)
 ======================= */
-function createChat(initialMessage = "") {
+window.startMode = function (m) {
+  mode = m;
+
+  document.body.classList.remove("home");
+  homeScreen?.classList.add("hidden");
+
+  if (!currentChatId) {
+    createChat(m);
+  }
+
+  focusInput();
+};
+
+/* =======================
+   NEW CHAT
+======================= */
+newChatBtn?.addEventListener("click", () => {
+  createChat("New Chat");
+});
+
+/* =======================
+   CHAT SYSTEM
+======================= */
+function createChat(title = "New Chat") {
   const id = Date.now().toString();
 
   chats[id] = {
-    title: initialMessage ? initialMessage.slice(0, 20) : "New Chat",
+    title,
     messages: []
   };
 
@@ -81,6 +82,13 @@ function createChat(initialMessage = "") {
 
   renderChats();
   renderMessages();
+  save();
+
+  generateTitle(id);
+}
+
+function getChat() {
+  return chats[currentChatId];
 }
 
 /* =======================
@@ -90,45 +98,32 @@ function renderChats() {
   chatList.innerHTML = "";
 
   Object.keys(chats).forEach(id => {
-    const chatItem = document.createElement("div");
-    chatItem.className = "chat-item";
+    const div = document.createElement("div");
+    div.className = "chat-item";
 
-    if (id === currentChatId) chatItem.classList.add("active");
+    div.innerHTML = `
+      <span>${chats[id].title}</span>
+      <button class="del">✖</button>
+    `;
 
-    const title = document.createElement("span");
-    title.textContent = chats[id].title;
+    div.onclick = () => {
+      currentChatId = id;
+      renderMessages();
+      focusInput();
+    };
 
-    const del = document.createElement("button");
-    del.textContent = "✖";
-
-    del.onclick = (e) => {
+    div.querySelector(".del").onclick = (e) => {
       e.stopPropagation();
       delete chats[id];
 
-      if (!Object.keys(chats).length) {
-        currentChatId = null;
-        chatBox.innerHTML = "";
-        return;
-      }
-
-      if (currentChatId === id) {
-        currentChatId = Object.keys(chats)[0];
-      }
+      currentChatId = Object.keys(chats)[0] || null;
 
       renderChats();
       renderMessages();
+      save();
     };
 
-    chatItem.onclick = () => {
-      currentChatId = id;
-      renderChats();
-      renderMessages();
-      toggleSidebar(false);
-    };
-
-    chatItem.appendChild(title);
-    chatItem.appendChild(del);
-    chatList.appendChild(chatItem);
+    chatList.appendChild(div);
   });
 }
 
@@ -138,12 +133,12 @@ function renderChats() {
 function renderMessages() {
   chatBox.innerHTML = "";
 
-  const chat = getCurrentChat();
+  const chat = getChat();
   if (!chat) return;
 
   chat.messages.forEach(m => {
     const div = document.createElement("div");
-    div.className = "message " + m.uiRole;
+    div.className = "message " + m.role;
 
     div.innerHTML = window.marked
       ? marked.parse(m.content)
@@ -156,31 +151,16 @@ function renderMessages() {
 }
 
 /* =======================
-   ADD MESSAGE
+   TYPING EFFECT
 ======================= */
-function addMessage(role, content) {
-  const chat = getCurrentChat();
-  if (!chat) return;
-
-  chat.messages.push({
-    role: role === "ai" ? "assistant" : role,
-    uiRole: role,
-    content
-  });
-
-  renderMessages();
-}
-
-/* =======================
-   TYPEWRITER
-======================= */
-function typeText(element, text, speed = 12) {
+function typeText(el, text, speed = 8) {
   let i = 0;
+  el.innerHTML = "";
 
   function step() {
     if (i > text.length) return;
 
-    element.innerHTML = window.marked
+    el.innerHTML = window.marked
       ? marked.parse(text.slice(0, i))
       : text.slice(0, i);
 
@@ -194,108 +174,62 @@ function typeText(element, text, speed = 12) {
 }
 
 /* =======================
-   SEND MESSAGE
+   THINKING DOTS
 ======================= */
-async function sendMessage() {
-  const message = input.value.trim();
-  if (!message) return;
-
-  if (!currentChatId || !chats[currentChatId]) {
-    createChat(message);
-  }
-
-  const chat = getCurrentChat();
-
-  document.body.classList.remove("home");
-  homeScreen?.classList.add("hidden");
-
-  addMessage("user", message);
-  input.value = "";
-
-  triggerTitleUpdate();
-
-  const loading = document.createElement("div");
-  loading.className = "message ai";
-  loading.innerHTML = `
+function loadingDots() {
+  const div = document.createElement("div");
+  div.className = "message assistant";
+  div.innerHTML = `
     <div class="dots">
       <span></span><span></span><span></span>
     </div>
   `;
-  chatBox.appendChild(loading);
-
-  chatBox.scrollTop = chatBox.scrollHeight;
-
-  try {
-    const res = await fetch("/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: chat.messages.map(m => ({
-          role: m.role,
-          content: m.content
-        }))
-      })
-    });
-
-    const data = await res.json();
-    loading.remove();
-
-    if (!data.reply) {
-      addMessage("ai", "⚠️ Empty response");
-      return;
-    }
-
-    const div = document.createElement("div");
-    div.className = "message ai";
-    chatBox.appendChild(div);
-
-    typeText(div, data.reply);
-
-    chat.messages.push({
-      role: "assistant",
-      uiRole: "ai",
-      content: data.reply
-    });
-
-    renderChats();
-    triggerTitleUpdate();
-
-  } catch (err) {
-    console.error(err);
-    loading.remove();
-    addMessage("ai", "⚠️ Server not responding");
-  }
+  chatBox.appendChild(div);
+  return div;
 }
 
 /* =======================
-   FORM EVENTS
+   SMART MODE DETECTION
 ======================= */
-function bindChatForm() {
-  const chatForm = document.getElementById("chat-form");
-  if (!chatForm) return;
+function detectMode(text) {
+  const t = text.toLowerCase();
 
-  chatForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    sendMessage();
-  });
+  if (t.includes("essay") || t.includes("write about")) return "essay";
+  if (t.includes("summarize")) return "summarize";
+  if (t.includes("quiz")) return "quiz";
+  if (t.includes("homework")) return "homework";
+  if (t.includes("write")) return "write";
+
+  return "chat";
 }
 
 /* =======================
-   INIT
+   SEND MESSAGE (FIXED CORE)
 ======================= */
-window.addEventListener("DOMContentLoaded", () => {
-  console.log("INIT READY 🔥");
-  createChat();
-  bindChatForm();
-});
+async function sendMessage(text) {
+  const msg = text || input.value.trim();
+  if (!msg) return;
 
-/* =======================
-   AI TITLE SYSTEM (FIXED)
-======================= */
-async function generateAITitle(chat) {
+  if (!currentChatId) createChat(msg);
+
+  const chat = getChat();
+
+  mode = detectMode(msg);
+
+  document.body.classList.remove("home");
+  homeScreen?.classList.add("hidden");
+
+  chat.messages.push({ role: "user", content: msg });
+  renderMessages();
+
+  input.value = "";
+
+  const loading = loadingDots();
+
+  const isEssay =
+    mode === "essay";
+
   try {
-    const messages = chat.messages.slice(0, 8);
-
     const res = await fetch("/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -304,54 +238,131 @@ async function generateAITitle(chat) {
           {
             role: "system",
             content: `
-Generate a concise chat title (max 3 words).
+Mode: ${mode}
 
-Strict rules:
-- 1 to 3 words only
-- No punctuation
-- No emojis
-- No filler words
-- Focus on main topic only
+RULES:
+- If essay mode: ONLY paragraphs (NO bullet points EVER)
+- If summarize: short bullets
+- If quiz: questions + answers
+- If write: structured writing
+- If chat: normal conversation
 
-Examples:
-"Fix CSS Layout"
-"AI Chat App"
-"Math Homework Help"
-`
+Style:
+- ${isEssay ? "Write long flowing paragraphs only." : "Be clear and helpful."}
+- Use emojis when useful
+            `
           },
-          ...messages.map(m => ({
-            role: m.role,
-            content: m.content
-          })),
-          {
-            role: "user",
-            content: "Generate a short title for this conversation."
-          }
+          ...chat.messages
         ]
       })
     });
 
     const data = await res.json();
-    return data.reply?.trim() || "New Chat";
+    loading.remove();
+
+    const div = document.createElement("div");
+    div.className = "message assistant";
+    chatBox.appendChild(div);
+
+    typeText(div, data.reply || "No response");
+
+    chat.messages.push({
+      role: "assistant",
+      content: data.reply
+    });
+
+    renderChats();
+    generateTitle(currentChatId);
+    save();
 
   } catch (err) {
-    console.error("Title generation failed:", err);
-    return "New Chat";
+    console.error(err);
+    loading.remove();
   }
 }
 
 /* =======================
-   TITLE UPDATER (FIXED)
+   TITLE FIX (NO "no response")
 ======================= */
-function triggerTitleUpdate() {
-  const chat = getCurrentChat();
-  if (!chat) return;
+async function generateTitle(chatId) {
+  const chat = chats[chatId];
+  if (!chat || chat.messages.length < 2) return;
 
-  clearTimeout(titleUpdateTimeout);
+  try {
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "system",
+            content: `
+Give ONLY a short title (1–4 words).
+No punctuation. No "response". No explanations.
+`
+          },
+          ...chat.messages.slice(0, 6)
+        ]
+      })
+    });
 
-  titleUpdateTimeout = setTimeout(async () => {
-    const newTitle = await generateAITitle(chat);
-    chat.title = newTitle;
+    const data = await res.json();
+
+    let title = (data.reply || "Chat")
+      .replace(/[^a-zA-Z0-9 ]/g, "")
+      .trim();
+
+    if (!title || title.toLowerCase().includes("response")) {
+      title = "Chat";
+    }
+
+    chat.title = title.split(" ").slice(0, 4).join(" ");
+
     renderChats();
-  }, 1200);
+    save();
+
+  } catch {
+    chat.title = "Chat";
+  }
 }
+
+/* =======================
+   HOME INPUT FIX
+======================= */
+homeInput?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    const v = homeInput.value.trim();
+    if (!v) return;
+
+    sendMessage(v);
+    homeInput.value = "";
+  }
+});
+
+/* =======================
+   FORM
+======================= */
+document.getElementById("chat-form").onsubmit = (e) => {
+  e.preventDefault();
+  sendMessage();
+};
+
+/* =======================
+   FOCUS
+======================= */
+function focusInput() {
+  setTimeout(() => input?.focus(), 50);
+}
+
+/* =======================
+   SAVE
+======================= */
+function save() {
+  localStorage.setItem("chats_" + user, JSON.stringify(chats));
+}
+
+/* =======================
+   INIT
+======================= */
+createChat("Welcome");
+renderChats();
