@@ -1,94 +1,122 @@
-console.log("SCRIPT RUNNING 🔥");
+console.log("RUNNING");
 
-/* =======================
-   STATE
-======================= */
 let chats = {};
 let currentChatId = null;
 let mode = "chat";
-let user = localStorage.getItem("user");
-
-/* =======================
-   LOGIN
-======================= */
-if (!user) {
-  user = prompt("Enter your name:");
-  localStorage.setItem("user", user);
-}
-
-chats = JSON.parse(localStorage.getItem("chats_" + user)) || {};
 
 /* =======================
    ELEMENTS
 ======================= */
-const input = document.getElementById("user-input");
+const home = document.getElementById("home-screen");
 const chatBox = document.getElementById("chat-box");
-const chatList = document.getElementById("chat-list");
-const homeScreen = document.getElementById("home-screen");
+const input = document.getElementById("user-input");
 const homeInput = document.getElementById("home-input");
-const sidebar = document.querySelector(".sidebar");
-const overlay = document.getElementById("overlay");
-const menuBtn = document.getElementById("menu-btn");
-const newChatBtn = document.getElementById("new-chat-btn");
+const chatList = document.getElementById("chat-list");
+const form = document.getElementById("chat-form");
+const sendBtn = document.getElementById("send-btn");
 
 /* =======================
-   SIDEBAR
+   UI
 ======================= */
-menuBtn?.addEventListener("click", () => {
-  sidebar.classList.toggle("open");
-  overlay?.classList.toggle("show");
-});
+function showHome() {
+  home.style.display = "flex";
+}
 
-overlay?.addEventListener("click", () => {
-  sidebar.classList.remove("open");
-  overlay?.classList.remove("show");
-});
+function showChat() {
+  home.style.display = "none";
+}
 
 /* =======================
-   MODE SYSTEM (FIXED)
+   SAVE
 ======================= */
-window.startMode = function (m) {
-  mode = m;
+function save() {
+  localStorage.setItem("chats", JSON.stringify(chats));
+}
 
-  document.body.classList.remove("home");
-  homeScreen?.classList.add("hidden");
+/* =======================
+   SCROLL (FIXED)
+======================= */
+function smartScroll() {
+  const threshold = 100; // how close to bottom = "allowed to auto scroll"
 
-  if (!currentChatId) {
-    createChat(m);
+  const isNearBottom =
+    chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < threshold;
+
+  if (isNearBottom) {
+    requestAnimationFrame(() => {
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
   }
-
-  focusInput();
-};
+}
 
 /* =======================
-   NEW CHAT
+   CREATE CHAT
 ======================= */
-newChatBtn?.addEventListener("click", () => {
-  createChat("New Chat");
-});
-
-/* =======================
-   CHAT SYSTEM
-======================= */
-function createChat(title = "New Chat") {
+function createChat(title, m = "chat") {
   const id = Date.now().toString();
 
   chats[id] = {
     title,
-    messages: []
+    messages: [],
+    mode: m
   };
 
   currentChatId = id;
+  mode = m;
+
+  showChat();
+  renderChats();
+  renderMessages();
+  updateHeader();
+  save();
+}
+
+/* =======================
+   OPEN CHAT
+======================= */
+function openChat(id) {
+  if (!chats[id]) return;
+
+  currentChatId = id;
+  mode = chats[id].mode;
+
+  showChat();
+  renderChats();
+  renderMessages();
+  updateHeader();
+}
+
+/* =======================
+   MODE SELECT
+======================= */
+window.startMode = function (m) {
+  mode = m;
+  createChat(m.toUpperCase(), m);
+};
+
+/* =======================
+   DELETE CHAT (FIXED)
+======================= */
+function deleteChat(id) {
+  const wasCurrent = currentChatId === id;
+
+  delete chats[id];
+  save();
+
+  const remaining = Object.keys(chats);
+
+  if (wasCurrent) {
+    if (remaining.length > 0) {
+      openChat(remaining[0]);
+    } else {
+      currentChatId = null;
+      showHome();
+    }
+  }
 
   renderChats();
   renderMessages();
-  save();
-
-  generateTitle(id);
-}
-
-function getChat() {
-  return chats[currentChatId];
+  updateHeader();
 }
 
 /* =======================
@@ -97,34 +125,43 @@ function getChat() {
 function renderChats() {
   chatList.innerHTML = "";
 
-  Object.keys(chats).forEach(id => {
+  Object.entries(chats).forEach(([id, chat]) => {
     const div = document.createElement("div");
     div.className = "chat-item";
 
-    div.innerHTML = `
-      <span>${chats[id].title}</span>
-      <button class="del">✖</button>
-    `;
+    if (id === currentChatId) {
+      div.classList.add("active");
+    }
 
-    div.onclick = () => {
-      currentChatId = id;
-      renderMessages();
-      focusInput();
-    };
+    const title = document.createElement("span");
+    title.textContent = (chat.title || "New Chat")
+      .split(" ")
+      .slice(0, 3)
+      .join(" ");
 
-    div.querySelector(".del").onclick = (e) => {
+    const del = document.createElement("button");
+    del.textContent = "🗑";
+    del.className = "delete-btn";
+
+    del.onclick = (e) => {
       e.stopPropagation();
-      delete chats[id];
-
-      currentChatId = Object.keys(chats)[0] || null;
-
-      renderChats();
-      renderMessages();
-      save();
+      deleteChat(id);
     };
+
+    div.onclick = () => openChat(id);
+
+    div.appendChild(title);
+    div.appendChild(del);
 
     chatList.appendChild(div);
   });
+}
+
+/* =======================
+   FORMAT TEXT
+======================= */
+function formatText(text) {
+  return text.replace(/\n/g, "<br>");
 }
 
 /* =======================
@@ -133,236 +170,213 @@ function renderChats() {
 function renderMessages() {
   chatBox.innerHTML = "";
 
-  const chat = getChat();
+  const chat = chats[currentChatId];
   if (!chat) return;
 
   chat.messages.forEach(m => {
-    const div = document.createElement("div");
-    div.className = "message " + m.role;
+    const row = document.createElement("div");
+    row.className = "message " + m.role;
 
-    div.innerHTML = window.marked
-      ? marked.parse(m.content)
-      : m.content;
+    const inner = document.createElement("div");
+    inner.innerHTML = formatText(m.content);
 
-    chatBox.appendChild(div);
+    row.appendChild(inner);
+    chatBox.appendChild(row);
   });
 
-  chatBox.scrollTop = chatBox.scrollHeight;
+smartScroll();
 }
 
 /* =======================
-   TYPING EFFECT
+   TYPEWRITER
 ======================= */
-function typeText(el, text, speed = 8) {
+function typeText(element, text, speed = 12) {
+  element.innerHTML = "";
+
   let i = 0;
-  el.innerHTML = "";
 
-  function step() {
-    if (i > text.length) return;
-
-    el.innerHTML = window.marked
-      ? marked.parse(text.slice(0, i))
-      : text.slice(0, i);
-
-    i++;
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-    setTimeout(step, speed);
+  function type() {
+    if (i < text.length) {
+      element.innerHTML += text[i] === "\n" ? "<br>" : text[i];
+      i++;
+      smartScroll();
+      setTimeout(type, speed);
+    }
   }
 
-  step();
+  type();
 }
 
 /* =======================
-   THINKING DOTS
-======================= */
-function loadingDots() {
-  const div = document.createElement("div");
-  div.className = "message assistant";
-  div.innerHTML = `
-    <div class="dots">
-      <span></span><span></span><span></span>
-    </div>
-  `;
-  chatBox.appendChild(div);
-  return div;
-}
-
-/* =======================
-   SMART MODE DETECTION
-======================= */
-function detectMode(text) {
-  const t = text.toLowerCase();
-
-  if (t.includes("essay") || t.includes("write about")) return "essay";
-  if (t.includes("summarize")) return "summarize";
-  if (t.includes("quiz")) return "quiz";
-  if (t.includes("homework")) return "homework";
-  if (t.includes("write")) return "write";
-
-  return "chat";
-}
-
-/* =======================
-   SEND MESSAGE (FIXED CORE)
+   SEND MESSAGE
 ======================= */
 async function sendMessage(text) {
   const msg = text || input.value.trim();
   if (!msg) return;
 
-  if (!currentChatId) createChat(msg);
+  if (!currentChatId) {
+    createChat(msg, mode);
+    return;
+  }
 
-  const chat = getChat();
+  const chat = chats[currentChatId];
 
-  mode = detectMode(msg);
-
-  document.body.classList.remove("home");
-  homeScreen?.classList.add("hidden");
-
+  // USER MESSAGE
   chat.messages.push({ role: "user", content: msg });
-  renderMessages();
 
   input.value = "";
-
-  const loading = loadingDots();
-
-  const isEssay =
-    mode === "essay";
-
+  renderMessages();
+const typingRow = showTyping();
   try {
-    const res = await fetch("/chat", {
+    const res = await fetch("http://localhost:3000/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({
-        messages: [
-          {
-            role: "system",
-            content: `
-Mode: ${mode}
-
-RULES:
-- If essay mode: ONLY paragraphs (NO bullet points EVER)
-- If summarize: short bullets
-- If quiz: questions + answers
-- If write: structured writing
-- If chat: normal conversation
-
-Style:
-- ${isEssay ? "Write long flowing paragraphs only." : "Be clear and helpful."}
-- Use emojis when useful
-            `
-          },
-          ...chat.messages
-        ]
+        mode: chat.mode,
+        messages: chat.messages,
+        chatId: currentChatId
       })
     });
 
     const data = await res.json();
-    loading.remove();
+typingRow.remove();
+    // TITLE UPDATE
+    if (data.title) {
+      chats[currentChatId].title = data.title;
+      renderChats();
+      save();
+    }
 
-    const div = document.createElement("div");
-    div.className = "message assistant";
-    chatBox.appendChild(div);
+    const reply = data.reply || "No response";
 
-    typeText(div, data.reply || "No response");
+    // CREATE AI MESSAGE ROW
+    const row = document.createElement("div");
+    row.className = "message assistant";
 
+    const inner = document.createElement("div");
+    row.appendChild(inner);
+    chatBox.appendChild(row);
+
+    // SAVE MESSAGE
     chat.messages.push({
       role: "assistant",
-      content: data.reply
+      content: reply
     });
 
-    renderChats();
-    generateTitle(currentChatId);
+    smartScroll();
+
+    // TYPE EFFECT
+    setTimeout(() => {
+      typeText(inner, reply, 10);
+    }, 100);
+
     save();
 
   } catch (err) {
-    console.error(err);
-    loading.remove();
-  }
-}
+    console.log(err);
 
-/* =======================
-   TITLE FIX (NO "no response")
-======================= */
-async function generateTitle(chatId) {
-  const chat = chats[chatId];
-  if (!chat || chat.messages.length < 2) return;
-
-  try {
-    const res = await fetch("/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: "system",
-            content: `
-Give ONLY a short title (1–4 words).
-No punctuation. No "response". No explanations.
-`
-          },
-          ...chat.messages.slice(0, 6)
-        ]
-      })
+    chat.messages.push({
+      role: "assistant",
+      content: "⚠️ Server error"
     });
 
-    const data = await res.json();
-
-    let title = (data.reply || "Chat")
-      .replace(/[^a-zA-Z0-9 ]/g, "")
-      .trim();
-
-    if (!title || title.toLowerCase().includes("response")) {
-      title = "Chat";
-    }
-
-    chat.title = title.split(" ").slice(0, 4).join(" ");
-
-    renderChats();
-    save();
-
-  } catch {
-    chat.title = "Chat";
+    renderMessages();
   }
 }
 
 /* =======================
-   HOME INPUT FIX
+   EVENTS
 ======================= */
-homeInput?.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    const v = homeInput.value.trim();
-    if (!v) return;
+form.addEventListener("submit", e => {
+  e.preventDefault();
+  sendMessage();
+});
 
-    sendMessage(v);
+sendBtn.onclick = () => sendMessage();
+
+/* =======================
+   HOME INPUT (FIXED)
+======================= */
+homeInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const value = homeInput.value.trim();
+    if (!value) return;
+
+    mode = "chat";
+
+    createChat(value, mode);
+setTimeout(() => {
+  sendMessage(value);
+}, 0);
+
     homeInput.value = "";
   }
 });
 
 /* =======================
-   FORM
+   NEW CHAT
 ======================= */
-document.getElementById("chat-form").onsubmit = (e) => {
-  e.preventDefault();
-  sendMessage();
+document.getElementById("new-chat-btn").onclick = () => {
+  mode = "chat";
+  createChat("New Chat", mode);
 };
 
 /* =======================
-   FOCUS
+   HEADER
 ======================= */
-function focusInput() {
-  setTimeout(() => input?.focus(), 50);
-}
+function updateHeader() {
+  const header = document.getElementById("chat-header");
+  if (!header) return;
 
-/* =======================
-   SAVE
-======================= */
-function save() {
-  localStorage.setItem("chats_" + user, JSON.stringify(chats));
-}
+  const chat = chats[currentChatId];
 
+  if (!chat) {
+    header.textContent = "";
+    return;
+  }
+
+  const modes = {
+    chat: "💬 Chat",
+    quiz: "🧠 Quiz",
+    homework: "📘 Homework",
+    write: "✍️ Write",
+    summarize: "📌 Summarize"
+  };
+
+  header.textContent = modes[chat.mode] || "💬 Chat";
+}
+function showTyping() {
+  const row = document.createElement("div");
+  row.className = "message assistant typing-row";
+
+  const box = document.createElement("div");
+  box.className = "typing";
+
+  box.innerHTML = `
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  `;
+
+  row.appendChild(box);
+  chatBox.appendChild(row);
+
+  smartScroll();
+
+  return row; // we return it so we can remove it later
+}
 /* =======================
    INIT
 ======================= */
-createChat("Welcome");
-renderChats();
+function init() {
+  showHome();
+
+  const saved = localStorage.getItem("chats");
+  if (saved) chats = JSON.parse(saved);
+
+  renderChats();
+}
+
+init();

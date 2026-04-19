@@ -6,70 +6,167 @@ const path = require("path");
 const app = express();
 
 app.use(cors());
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-app.post("/chat", async (req, res) => {
+/* =======================
+   FETCH (NODE COMPAT)
+======================= */
+const fetch = (...args) =>
+  import("node-fetch").then(({ default: fetch }) => fetch(...args));
+
+/* =======================
+   SIMPLE TITLE GENERATOR
+======================= */
+async function generateTitle(message) {
   try {
-    const messages = req.body?.messages;
-
-    if (!Array.isArray(messages)) {
-      return res.status(400).json({ error: "Invalid messages" });
-    }
-
     const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
         headers: {
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`
         },
         body: JSON.stringify({
-  model: "llama-3.1-8b-instant",
-  messages: [
-   {
-  role: "system",
-  content: `
-Be a helpful AI.
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            {
+              role: "system",
+              content:
+               "Create a chat title (MAX 3 words only). No punctuation. No emojis.",
+            },
+            { role: "user", content: message },
+          ],
+        }),
+      }
+    );
 
-SMART RESPONSE RULES:
+    const data = await response.json();
+    return (
+      data.choices?.[0]?.message?.content?.trim() || "New Chat"
+    );
+  } catch {
+    return "New Chat";
+  }
+}
 
-1) If the user asks for:
-- essay
-- "write about"
-- "explain in detail"
-- "long answer"
-→ Write a LONG response in PARAGRAPHS ONLY.
-→ Do NOT use bullet points, lists, or emojis-heavy structure.
+/* =======================
+   CHAT ROUTE
+======================= */
+app.post("/chat", async (req, res) => {
+  const { messages, mode } = req.body;
 
-2) For everything else:
-→ Keep responses short and direct.
-→ Use bullets ONLY if it improves clarity.
+  let systemPrompt = `
+You are a helpful AI assistant.
+- Use bullet points when needed
+- Use emojis sometimes 😊🔥📌
+- Keep answers clear and structured
+`;
 
-FORMATTING RULES:
-- Essays = paragraphs only (no lists at all)
-- Normal answers = short and simple
-- No unnecessary formatting
-`
-},
-    ...messages
-  ]
-})
+  if (mode === "quiz") {
+    systemPrompt = `
+You are in QUIZ MODE 🧠
+- Create MCQs
+- Use bullet points
+- Use emojis sometimes
+`;
+  }
+
+  if (mode === "homework") {
+    systemPrompt = `
+You are in HOMEWORK MODE 📘
+- Explain step by step
+- Use bullet points
+- Use emojis sometimes
+`;
+  }
+
+  if (mode === "write") {
+    systemPrompt = `
+You are in WRITING MODE ✍️
+- Write clearly and creatively
+- Use paragraphs unless listing ideas
+- Use emojis sometimes
+`;
+  }
+
+  if (mode === "summarize") {
+    systemPrompt = `
+You are in SUMMARIZE MODE 📌
+- Always use bullet points
+- Be short and clear
+- Use emojis sometimes
+`;
+  }
+
+  const finalMessages = [
+    { role: "system", content: systemPrompt },
+    ...messages,
+  ];
+
+  try {
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+          messages: finalMessages,
+        }),
       }
     );
 
     const data = await response.json();
 
-    const reply = data?.choices?.[0]?.message?.content;
+    if (!data.choices) {
+      return res.json({
+        reply: "❌ AI error (no response)",
+        title: null,
+      });
+    }
 
-    res.json({ reply: reply || "No response" });
+    const aiReply =
+      data.choices[0].message.content || "No response";
 
+    /* =======================
+       SAFE TITLE LOGIC
+       (ONLY FIRST MESSAGE)
+    ======================= */
+
+    let title = null;
+
+    const userMessages = messages.filter(
+      (m) => m.role === "user"
+    );
+
+    if (userMessages.length === 1) {
+      const context = userMessages[0].content;
+      title = await generateTitle(context);
+    }
+
+    return res.json({
+      reply: aiReply,
+      title,
+    });
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    console.error(err);
+    return res.json({
+      reply: "Server error",
+      title: null,
+    });
   }
 });
 
-app.listen(3000, () => {
-  console.log("🔥 SERVER RUNNING http://localhost:3000");
+/* =======================
+   START SERVER
+======================= */
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`🔥 Server running → http://localhost:${PORT}`);
 });

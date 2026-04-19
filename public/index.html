@@ -4,24 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AI Chat</title>
+<link rel="stylesheet" href="style.css"></head>
 
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-</head>
-
-<body class="home">
-
-<button id="menu-btn">☰</button>
+<body>
 
 <div class="app">
 
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <button id="new-chat-btn">+ New Chat</button>
     <div id="chat-list"></div>
   </aside>
 
-  <div id="overlay"></div>
-
+  <!-- MAIN -->
   <main class="main">
 
     <!-- HOME -->
@@ -29,26 +24,26 @@
       <h1>What can I help with?</h1>
 
       <div class="home-buttons">
-        <button onclick="startMode('quiz')">🧠 Make a quiz</button>
-<button onclick="startMode('homework')">📘 Help with homework</button>
-<button onclick="startMode('write')">✍️ Help write</button>
-<button onclick="startMode('summarize')">📌 Summarize</button>
+        <button onclick="startMode('quiz')">🧠 Quiz</button>
+        <button onclick="startMode('homework')">📘 Homework</button>
+        <button onclick="startMode('write')">✍️ Write</button>
+        <button onclick="startMode('summarize')">📌 Summarize</button>
       </div>
 
       <input id="home-input" placeholder="Ask anything..." />
     </div>
-
+<div id="chat-header"></div>
     <!-- CHAT -->
     <section id="chat-box"></section>
 
     <!-- INPUT -->
     <form id="chat-form" class="input-area">
-      <input id="user-input" type="text" placeholder="Message..." />
-      <button type="submit">➤</button>
-      <button type="button" id="voice-btn">🎤</button>
+      <input id="user-input" placeholder="Message..." />
+      <button id="send-btn">➜</button>
     </form>
 
   </main>
+
 </div>
 
 <script src="script.js"></script>
