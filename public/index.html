@@ -4,7 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AI Chat</title>
-<link rel="stylesheet" href="style.css"></head>
+
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
+</head>
 
 <body>
 
@@ -12,14 +16,15 @@
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
-    <button id="new-chat-btn">+ New Chat</button>
-    <div id="chat-list"></div>
-  </aside>
+  <button id="new-chat-btn">+ New Chat</button>
+  <div id="chat-list"></div>
+</aside>
+  
 
   <!-- MAIN -->
   <main class="main">
 
-    <!-- HOME -->
+    <!-- HOME SCREEN -->
     <div id="home-screen">
       <h1>What can I help with?</h1>
 
@@ -28,22 +33,75 @@
         <button onclick="startMode('homework')">📘 Homework</button>
         <button onclick="startMode('write')">✍️ Write</button>
         <button onclick="startMode('summarize')">📌 Summarize</button>
+
+        <!-- ✅ FIX: Study Games button -->
+        <button onclick="openGameMenu()">🎮 Study Games</button>
       </div>
 
       <input id="home-input" placeholder="Ask anything..." />
     </div>
-<div id="chat-header"></div>
-    <!-- CHAT -->
+
+    <!-- GAME MENU (SEPARATE SCREEN) -->
+    <div id="game-menu" class="game-screen" style="display:none">
+
+  <div class="game-header">
+    <h1>🎮 Study Game Portal</h1>
+    <p>Select a learning game and build your challenge</p>
+  </div>
+
+  <div class="game-grid">
+
+    <div class="game-card" onclick="selectGame('flip')">
+      🎴
+      <h2>Flip Cards</h2>
+      <p>Memory-based learning with concepts & definitions</p>
+    </div>
+
+    <div class="game-card" onclick="selectGame('snake')">
+      🐍
+      <h2>Snake & Ladder</h2>
+      <p>Progress-based learning board game</p>
+    </div>
+
+    <div class="game-card" onclick="selectGame('match')">
+      🧠
+      <h2>Matching Game</h2>
+      <p>Pair concepts and improve recall speed</p>
+    </div>
+
+    <div class="game-card" onclick="selectGame('type')">
+      ⌨️
+      <h2>Typing Trainer</h2>
+      <p>Improve speed while learning content</p>
+    </div>
+
+  </div>
+
+  <!-- Setup Panel -->
+  <div id="game-setup" class="game-setup" style="display:none">
+    <h2>📚 Configure Game</h2>
+
+    <input id="game-grade" placeholder="Enter Grade (e.g. Grade 8)" />
+    <input id="game-topic" placeholder="Enter Topic (e.g. Photosynthesis)" />
+<button onclick="submitGameAnswer()">Submit</button>
+    
+  </div>
+
+</div>
+
+    <!-- CHAT HEADER -->
+    <div id="chat-header"></div>
+
+    <!-- CHAT BOX -->
     <section id="chat-box"></section>
 
     <!-- INPUT -->
     <form id="chat-form" class="input-area">
       <input id="user-input" placeholder="Message..." />
-      <button id="send-btn">➜</button>
+      <button id="send-btn" type="submit">➜</button>
     </form>
 
   </main>
-
 </div>
 
 <script src="script.js"></script>

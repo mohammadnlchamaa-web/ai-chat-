@@ -1,6 +1,9 @@
-console.log("RUNNING");
+console.log("RUNNING FIXED VERSION 🚀");
 
-let chats = {};
+/* =======================
+   STATE
+======================= */
+let chats = JSON.parse(localStorage.getItem("chats")) || {};
 let currentChatId = null;
 let mode = "chat";
 
@@ -14,17 +17,7 @@ const homeInput = document.getElementById("home-input");
 const chatList = document.getElementById("chat-list");
 const form = document.getElementById("chat-form");
 const sendBtn = document.getElementById("send-btn");
-
-/* =======================
-   UI
-======================= */
-function showHome() {
-  home.style.display = "flex";
-}
-
-function showChat() {
-  home.style.display = "none";
-}
+const gameMenu = document.getElementById("game-menu");
 
 /* =======================
    SAVE
@@ -32,31 +25,147 @@ function showChat() {
 function save() {
   localStorage.setItem("chats", JSON.stringify(chats));
 }
+let selectedGame = null;
 
-/* =======================
-   SCROLL (FIXED)
-======================= */
-function smartScroll() {
-  const threshold = 100; // how close to bottom = "allowed to auto scroll"
+function selectGame(type) {
+  selectedGame = type;
 
-  const isNearBottom =
-    chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < threshold;
+  const setup = document.getElementById("game-setup");
 
-  if (isNearBottom) {
-    requestAnimationFrame(() => {
-      chatBox.scrollTop = chatBox.scrollHeight;
-    });
+  setup.style.display = "block";
+
+  setup.innerHTML = `
+    <div style="padding:25px; max-width:600px;">
+      <h2>🎓 Academic Configuration</h2>
+      <p style="opacity:0.7">
+        To generate a high-level learning challenge, please specify your academic context.
+      </p>
+
+      <label>Current Academic Level</label>
+      <input id="game-grade" placeholder="e.g. Grade 10, IB HL, AP, University" />
+
+      <label>Topic Focus</label>
+      <input id="game-topic" placeholder="e.g. Derivatives, Photosynthesis, Recursion" />
+
+      <label>Difficulty Level</label>
+      <select id="game-difficulty">
+        <option>Standard</option>
+        <option>Advanced</option>
+        <option>Olympiad</option>
+        <option>MIT Level</option>
+      </select>
+
+      <button onclick="submitGameAnswer()" style="margin-top:15px">
+        Generate Challenge →
+      </button>
+    </div>
+  `;
+}
+function submitGameAnswer() {
+  const grade = document.getElementById("game-grade").value.trim();
+  const topic = document.getElementById("game-topic").value.trim();
+  const difficulty = document.getElementById("game-difficulty").value;
+
+  if (!grade || !topic) {
+    alert("Please provide both academic level and topic.");
+    return;
   }
+
+  generateGame({
+    game: selectedGame,
+    grade,
+    topic,
+    difficulty
+  });
+}
+function generateGame(profile) {
+  const gameBox = document.getElementById("game-menu");
+
+  gameBox.innerHTML = `
+    <div style="padding:25px">
+      <h2>⚡ Constructing Challenge...</h2>
+      <p style="opacity:0.7">
+        Building a ${profile.difficulty} level problem set in ${profile.topic}.
+      </p>
+    </div>
+  `;
+
+  fetch("http://localhost:3000/game", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(profile)
+  })
+  .then(res => res.json())
+  .then(data => {
+    gameBox.innerHTML = `
+      <div style="padding:25px">
+        <h2>🧠 ${profile.difficulty} Challenge</h2>
+
+        <div style="margin-bottom:10px; opacity:0.6">
+          ${profile.grade} • ${profile.topic}
+        </div>
+
+        <pre style="white-space:pre-wrap; font-size:15px;">
+${data.game}
+        </pre>
+
+        <button onclick="location.reload()" style="margin-top:15px">
+          🔁 New Challenge
+        </button>
+      </div>
+    `;
+  });
+}
+/* =======================
+   TITLE CLEAN
+======================= */
+function normalizeTitle(text = "") {
+  return text
+    .replace(/[^\w\s]/g, "")
+    .trim()
+    .split(" ")
+    .slice(0, 4)
+    .join(" ");
 }
 
 /* =======================
+   SCREEN
+======================= */
+const sidebar = document.querySelector(".sidebar");
+
+function showScreen(screen) {
+  home.style.display = "none";
+  chatBox.style.display = "none";
+  gameMenu.style.display = "none";
+
+  // ⭐ CONTROL SIDEBAR
+  sidebar.style.display = "none";
+
+  if (screen === "home") {
+    home.style.display = "flex";
+    sidebar.style.display = "none"; // hide sidebar
+  }
+
+  if (screen === "chat") {
+    chatBox.style.display = "block";
+    sidebar.style.display = "block"; // show sidebar
+  }
+
+  if (screen === "game") {
+    gameMenu.style.display = "block";
+    sidebar.style.display = "none"; // optional
+  }
+}
+/* =======================
    CREATE CHAT
 ======================= */
-function createChat(title, m = "chat") {
+function createChat(title = "New Chat", m = "chat") {
   const id = Date.now().toString();
 
   chats[id] = {
-    title,
+    title: normalizeTitle(title) || "New Chat",
     messages: [],
     mode: m
   };
@@ -64,63 +173,49 @@ function createChat(title, m = "chat") {
   currentChatId = id;
   mode = m;
 
-  showChat();
+  save();
   renderChats();
   renderMessages();
-  updateHeader();
-  save();
+  showScreen("chat");
 }
 
 /* =======================
    OPEN CHAT
 ======================= */
 function openChat(id) {
-  if (!chats[id]) return;
-
   currentChatId = id;
   mode = chats[id].mode;
 
-  showChat();
   renderChats();
   renderMessages();
-  updateHeader();
+  showScreen("chat");
 }
 
 /* =======================
-   MODE SELECT
-======================= */
-window.startMode = function (m) {
-  mode = m;
-  createChat(m.toUpperCase(), m);
-};
-
-/* =======================
-   DELETE CHAT (FIXED)
+   DELETE CHAT (FINAL FIX)
 ======================= */
 function deleteChat(id) {
-  const wasCurrent = currentChatId === id;
-
   delete chats[id];
-  save();
 
-  const remaining = Object.keys(chats);
+  const keys = Object.keys(chats);
 
-  if (wasCurrent) {
-    if (remaining.length > 0) {
-      openChat(remaining[0]);
-    } else {
-      currentChatId = null;
-      showHome();
-    }
+  if (currentChatId === id) {
+    currentChatId = keys.length ? keys[0] : null;
   }
 
+  save();
   renderChats();
-  renderMessages();
-  updateHeader();
+
+  if (!currentChatId) {
+    showScreen("home");
+    chatBox.innerHTML = "";
+  } else {
+    renderMessages();
+  }
 }
 
 /* =======================
-   RENDER CHATS
+   RENDER CHATS (UPDATED)
 ======================= */
 function renderChats() {
   chatList.innerHTML = "";
@@ -129,43 +224,42 @@ function renderChats() {
     const div = document.createElement("div");
     div.className = "chat-item";
 
-    if (id === currentChatId) {
-      div.classList.add("active");
-    }
+    if (id === currentChatId) div.classList.add("active");
 
     const title = document.createElement("span");
-    title.textContent = (chat.title || "New Chat")
-      .split(" ")
-      .slice(0, 3)
-      .join(" ");
+    title.textContent = chat.title;
 
     const del = document.createElement("button");
     del.textContent = "🗑";
     del.className = "delete-btn";
-
-    del.onclick = (e) => {
-      e.stopPropagation();
-      deleteChat(id);
-    };
-
-    div.onclick = () => openChat(id);
+    del.dataset.id = id;
 
     div.appendChild(title);
     div.appendChild(del);
-
     chatList.appendChild(div);
+
+    div.addEventListener("click", () => openChat(id));
   });
 }
 
 /* =======================
-   FORMAT TEXT
+   🔥 GLOBAL DELETE HANDLER (KEY FIX)
 ======================= */
-function formatText(text) {
-  return text.replace(/\n/g, "<br>");
-}
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".delete-btn");
+
+  if (btn) {
+    e.stopPropagation();
+
+    const id = btn.dataset.id;
+    console.log("DELETE CLICKED:", id);
+
+    deleteChat(id);
+  }
+});
 
 /* =======================
-   RENDER MESSAGES
+   MESSAGES
 ======================= */
 function renderMessages() {
   chatBox.innerHTML = "";
@@ -178,28 +272,35 @@ function renderMessages() {
     row.className = "message " + m.role;
 
     const inner = document.createElement("div");
-    inner.innerHTML = formatText(m.content);
+    inner.textContent = m.content;
+    inner.style.whiteSpace = "pre-wrap";
 
     row.appendChild(inner);
     chatBox.appendChild(row);
   });
 
-smartScroll();
+  scrollBottom();
+}
+
+/* =======================
+   SCROLL
+======================= */
+function scrollBottom() {
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 /* =======================
    TYPEWRITER
 ======================= */
-function typeText(element, text, speed = 12) {
+function typeText(element, text, speed = 10) {
   element.innerHTML = "";
-
   let i = 0;
 
   function type() {
     if (i < text.length) {
       element.innerHTML += text[i] === "\n" ? "<br>" : text[i];
       i++;
-      smartScroll();
+      scrollBottom();
       setTimeout(type, speed);
     }
   }
@@ -211,79 +312,49 @@ function typeText(element, text, speed = 12) {
    SEND MESSAGE
 ======================= */
 async function sendMessage(text) {
-  const msg = text || input.value.trim();
+  const msg = (text || input.value).trim();
   if (!msg) return;
 
-  if (!currentChatId) {
-    createChat(msg, mode);
+  if (!currentChatId || !chats[currentChatId]) {
+    createChat(msg);
     return;
   }
 
   const chat = chats[currentChatId];
 
-  // USER MESSAGE
   chat.messages.push({ role: "user", content: msg });
-
   input.value = "";
+
   renderMessages();
-const typingRow = showTyping();
-  try {
-    const res = await fetch("http://localhost:3000/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        mode: chat.mode,
-        messages: chat.messages,
-        chatId: currentChatId
-      })
-    });
 
-    const data = await res.json();
-typingRow.remove();
-    // TITLE UPDATE
-    if (data.title) {
-      chats[currentChatId].title = data.title;
-      renderChats();
-      save();
-    }
+  const res = await fetch("http://localhost:3000/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode, messages: chat.messages })
+  });
 
-    const reply = data.reply || "No response";
+  const data = await res.json().catch(() => null);
+  if (!data) return;
 
-    // CREATE AI MESSAGE ROW
-    const row = document.createElement("div");
-    row.className = "message assistant";
+  const reply = data.reply || "No response";
 
-    const inner = document.createElement("div");
-    row.appendChild(inner);
-    chatBox.appendChild(row);
+  chat.messages.push({ role: "assistant", content: reply });
 
-    // SAVE MESSAGE
-    chat.messages.push({
-      role: "assistant",
-      content: reply
-    });
+  const row = document.createElement("div");
+  row.className = "message assistant";
 
-    smartScroll();
+  const inner = document.createElement("div");
+  row.appendChild(inner);
+  chatBox.appendChild(row);
 
-    // TYPE EFFECT
-    setTimeout(() => {
-      typeText(inner, reply, 10);
-    }, 100);
+  typeText(inner, reply);
 
-    save();
-
-  } catch (err) {
-    console.log(err);
-
-    chat.messages.push({
-      role: "assistant",
-      content: "⚠️ Server error"
-    });
-
-    renderMessages();
+  if (data.title) {
+    chat.title = normalizeTitle(data.title);
+    renderChats();
   }
+
+  save();
 }
 
 /* =======================
@@ -294,89 +365,35 @@ form.addEventListener("submit", e => {
   sendMessage();
 });
 
-sendBtn.onclick = () => sendMessage();
+sendBtn.addEventListener("click", sendMessage);
 
-/* =======================
-   HOME INPUT (FIXED)
-======================= */
 homeInput.addEventListener("keydown", e => {
   if (e.key === "Enter") {
-    const value = homeInput.value.trim();
-    if (!value) return;
-
-    mode = "chat";
-
-    createChat(value, mode);
-setTimeout(() => {
-  sendMessage(value);
-}, 0);
+    const val = homeInput.value.trim();
+    if (!val) return;
 
     homeInput.value = "";
+    createChat(val);
+    setTimeout(() => sendMessage(val), 0);
   }
 });
 
-/* =======================
-   NEW CHAT
-======================= */
-document.getElementById("new-chat-btn").onclick = () => {
-  mode = "chat";
-  createChat("New Chat", mode);
-};
+document.getElementById("new-chat-btn")?.addEventListener("click", () => {
+  createChat("New Chat", "chat");
+});
 
 /* =======================
-   HEADER
+   GLOBALS
 ======================= */
-function updateHeader() {
-  const header = document.getElementById("chat-header");
-  if (!header) return;
+window.startMode = (m) => createChat(m, m);
+window.openGameMenu = () => showScreen("game");
 
-  const chat = chats[currentChatId];
-
-  if (!chat) {
-    header.textContent = "";
-    return;
-  }
-
-  const modes = {
-    chat: "💬 Chat",
-    quiz: "🧠 Quiz",
-    homework: "📘 Homework",
-    write: "✍️ Write",
-    summarize: "📌 Summarize"
-  };
-
-  header.textContent = modes[chat.mode] || "💬 Chat";
-}
-function showTyping() {
-  const row = document.createElement("div");
-  row.className = "message assistant typing-row";
-
-  const box = document.createElement("div");
-  box.className = "typing";
-
-  box.innerHTML = `
-    <div class="dot"></div>
-    <div class="dot"></div>
-    <div class="dot"></div>
-  `;
-
-  row.appendChild(box);
-  chatBox.appendChild(row);
-
-  smartScroll();
-
-  return row; // we return it so we can remove it later
-}
 /* =======================
    INIT
 ======================= */
 function init() {
-  showHome();
-
-  const saved = localStorage.getItem("chats");
-  if (saved) chats = JSON.parse(saved);
-
+  showScreen("home");
   renderChats();
 }
 
-init();
+document.addEventListener("DOMContentLoaded", init);

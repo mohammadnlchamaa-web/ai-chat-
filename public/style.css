@@ -147,7 +147,9 @@ body {
   font-size: 18px;
   line-height: 1.6;
 }
-
+.typing {
+  font-size: 0 !important;
+}
 .message div {
   max-width: 760px;
   padding: 12px;
@@ -337,4 +339,165 @@ body {
     opacity: 0.9;
     transform: scale(1.1);
   }
+}
+#game-menu {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  background: white;
+}
+.game-screen {
+  padding: 30px;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+
+.game-header h1 {
+  font-size: 32px;
+  margin-bottom: 5px;
+}
+
+.game-header p {
+  opacity: 0.7;
+  margin-bottom: 30px;
+}
+
+/* GRID */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+/* CARDS */
+.game-card {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 20px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: 0.25s ease;
+  backdrop-filter: blur(10px);
+}
+
+.game-card:hover {
+  transform: scale(1.05);
+  background: rgba(255,255,255,0.15);
+}
+
+/* SETUP PANEL */
+.game-setup {
+  margin-top: 30px;
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(0,0,0,0.3);
+}
+
+.game-setup input {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 10px;
+  border: none;
+}
+
+.game-setup button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border: none;
+  background: #4f7cff;
+  color: white;
+  cursor: pointer;
+}
+body {
+  color: #111;
+  font-family: Arial, sans-serif;
+}
+
+/* HOME + CHAT TEXT FIX */
+#home-screen,
+#chat-box,
+#chat-header {
+  color: #111;
+}
+
+/* messages */
+.message {
+  color: #111;
+}
+
+/* assistant messages slightly nicer */
+.message.assistant {
+  color: #1a1a1a;
+}
+
+/* input fix */
+input {
+  color: #111;
+  background: white;
+}
+
+/* buttons fix */
+button {
+  color: #111;
+}
+#game-menu {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 12px;
+  color: #111; /* 👈 THIS fixes white text */
+}
+
+/* ALL buttons inside game menu */
+#game-menu button {
+  color: #111;
+  background: #f3f4f6;
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin: 6px 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* hover effect */
+#game-menu button:hover {
+  background: #e5e7eb;
+}
+.chat-item {
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: 0.2s;
+}
+
+/* normal hover */
+.chat-item:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+/* ⭐ ACTIVE CHAT HIGHLIGHT */
+.chat-item.active {
+  background: rgba(0, 123, 255, 0.08);
+  border-left: 3px solid rgba(0, 123, 255, 0.5);
+}
+.delete-btn {
+  pointer-events: auto;
+  z-index: 10;
+  position: relative;
+}
+
+.chat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.delete-btn {
+  pointer-events: auto;
+  z-index: 9999;
+  position: relative;
 }
