@@ -78,4 +78,4 @@ self.addEventListener("fetch", (event) => {
       })
       .catch(() => caches.match(request))
   );
-});
+}); 

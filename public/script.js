@@ -1,399 +1,333 @@
-console.log("RUNNING FIXED VERSION 🚀");
-
-/* =======================
-   STATE
-======================= */
-let chats = JSON.parse(localStorage.getItem("chats")) || {};
+let chats = [];
 let currentChatId = null;
-let mode = "chat";
+let mode = "";
+let messageCount = 0;
 
-/* =======================
-   ELEMENTS
-======================= */
-const home = document.getElementById("home-screen");
+/* =========================
+   LOAD STORAGE
+========================= */
+try {
+  const stored = JSON.parse(localStorage.getItem("chats"));
+  if (Array.isArray(stored)) chats = stored;
+} catch {}
+
 const chatBox = document.getElementById("chat-box");
 const input = document.getElementById("user-input");
 const homeInput = document.getElementById("home-input");
 const chatList = document.getElementById("chat-list");
-const form = document.getElementById("chat-form");
-const sendBtn = document.getElementById("send-btn");
-const gameMenu = document.getElementById("game-menu");
 
-/* =======================
+/* =========================
    SAVE
-======================= */
-function save() {
+========================= */
+function saveChats() {
   localStorage.setItem("chats", JSON.stringify(chats));
 }
-let selectedGame = null;
 
-function selectGame(type) {
-  selectedGame = type;
-
-  const setup = document.getElementById("game-setup");
-
-  setup.style.display = "block";
-
-  setup.innerHTML = `
-    <div style="padding:25px; max-width:600px;">
-      <h2>🎓 Academic Configuration</h2>
-      <p style="opacity:0.7">
-        To generate a high-level learning challenge, please specify your academic context.
-      </p>
-
-      <label>Current Academic Level</label>
-      <input id="game-grade" placeholder="e.g. Grade 10, IB HL, AP, University" />
-
-      <label>Topic Focus</label>
-      <input id="game-topic" placeholder="e.g. Derivatives, Photosynthesis, Recursion" />
-
-      <label>Difficulty Level</label>
-      <select id="game-difficulty">
-        <option>Standard</option>
-        <option>Advanced</option>
-        <option>Olympiad</option>
-        <option>MIT Level</option>
-      </select>
-
-      <button onclick="submitGameAnswer()" style="margin-top:15px">
-        Generate Challenge →
-      </button>
-    </div>
-  `;
-}
-function submitGameAnswer() {
-  const grade = document.getElementById("game-grade").value.trim();
-  const topic = document.getElementById("game-topic").value.trim();
-  const difficulty = document.getElementById("game-difficulty").value;
-
-  if (!grade || !topic) {
-    alert("Please provide both academic level and topic.");
-    return;
-  }
-
-  generateGame({
-    game: selectedGame,
-    grade,
-    topic,
-    difficulty
-  });
-}
-function generateGame(profile) {
-  const gameBox = document.getElementById("game-menu");
-
-  gameBox.innerHTML = `
-    <div style="padding:25px">
-      <h2>⚡ Constructing Challenge...</h2>
-      <p style="opacity:0.7">
-        Building a ${profile.difficulty} level problem set in ${profile.topic}.
-      </p>
-    </div>
-  `;
-
-  fetch("http://localhost:3000/game", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(profile)
-  })
-  .then(res => res.json())
-  .then(data => {
-    gameBox.innerHTML = `
-      <div style="padding:25px">
-        <h2>🧠 ${profile.difficulty} Challenge</h2>
-
-        <div style="margin-bottom:10px; opacity:0.6">
-          ${profile.grade} • ${profile.topic}
-        </div>
-
-        <pre style="white-space:pre-wrap; font-size:15px;">
-${data.game}
-        </pre>
-
-        <button onclick="location.reload()" style="margin-top:15px">
-          🔁 New Challenge
-        </button>
-      </div>
-    `;
-  });
-}
-/* =======================
-   TITLE CLEAN
-======================= */
-function normalizeTitle(text = "") {
-  return text
-    .replace(/[^\w\s]/g, "")
-    .trim()
-    .split(" ")
-    .slice(0, 4)
-    .join(" ");
+/* =========================
+   MILESTONE TITLE TRIGGERS
+========================= */
+function shouldUpdateTitle(n) {
+  return [1, 3, 6, 9, 12, 15, 18].includes(n);
 }
 
-/* =======================
-   SCREEN
-======================= */
-const sidebar = document.querySelector(".sidebar");
-
-function showScreen(screen) {
-  home.style.display = "none";
-  chatBox.style.display = "none";
-  gameMenu.style.display = "none";
-
-  // ⭐ CONTROL SIDEBAR
-  sidebar.style.display = "none";
-
-  if (screen === "home") {
-    home.style.display = "flex";
-    sidebar.style.display = "none"; // hide sidebar
-  }
-
-  if (screen === "chat") {
-    chatBox.style.display = "block";
-    sidebar.style.display = "block"; // show sidebar
-  }
-
-  if (screen === "game") {
-    gameMenu.style.display = "block";
-    sidebar.style.display = "none"; // optional
-  }
-}
-/* =======================
-   CREATE CHAT
-======================= */
-function createChat(title = "New Chat", m = "chat") {
-  const id = Date.now().toString();
-
-  chats[id] = {
-    title: normalizeTitle(title) || "New Chat",
-    messages: [],
-    mode: m
-  };
-
-  currentChatId = id;
-  mode = m;
-
-  save();
-  renderChats();
-  renderMessages();
-  showScreen("chat");
-}
-
-/* =======================
-   OPEN CHAT
-======================= */
-function openChat(id) {
-  currentChatId = id;
-  mode = chats[id].mode;
-
-  renderChats();
-  renderMessages();
-  showScreen("chat");
-}
-
-/* =======================
-   DELETE CHAT (FINAL FIX)
-======================= */
-function deleteChat(id) {
-  delete chats[id];
-
-  const keys = Object.keys(chats);
-
-  if (currentChatId === id) {
-    currentChatId = keys.length ? keys[0] : null;
-  }
-
-  save();
-  renderChats();
-
-  if (!currentChatId) {
-    showScreen("home");
-    chatBox.innerHTML = "";
-  } else {
-    renderMessages();
-  }
-}
-
-/* =======================
-   RENDER CHATS (UPDATED)
-======================= */
-function renderChats() {
-  chatList.innerHTML = "";
-
-  Object.entries(chats).forEach(([id, chat]) => {
-    const div = document.createElement("div");
-    div.className = "chat-item";
-
-    if (id === currentChatId) div.classList.add("active");
-
-    const title = document.createElement("span");
-    title.textContent = chat.title;
-
-    const del = document.createElement("button");
-    del.textContent = "🗑";
-    del.className = "delete-btn";
-    del.dataset.id = id;
-
-    div.appendChild(title);
-    div.appendChild(del);
-    chatList.appendChild(div);
-
-    div.addEventListener("click", () => openChat(id));
-  });
-}
-
-/* =======================
-   🔥 GLOBAL DELETE HANDLER (KEY FIX)
-======================= */
-document.addEventListener("click", (e) => {
-  const btn = e.target.closest(".delete-btn");
-
-  if (btn) {
-    e.stopPropagation();
-
-    const id = btn.dataset.id;
-    console.log("DELETE CLICKED:", id);
-
-    deleteChat(id);
-  }
-});
-
-/* =======================
-   MESSAGES
-======================= */
-function renderMessages() {
-  chatBox.innerHTML = "";
-
-  const chat = chats[currentChatId];
+/* =========================
+   AI TITLE GENERATOR
+========================= */
+async function updateAITitle(text) {
+  const chat = chats.find(c => c.id === currentChatId);
   if (!chat) return;
 
-  chat.messages.forEach(m => {
-    const row = document.createElement("div");
-    row.className = "message " + m.role;
+  try {
+    const res = await fetch("http://localhost:3000/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "summarize",
+        messages: [
+          {
+            role: "user",
+            content: `Create a very short chat title (max 3 words, no punctuation): ${text}`
+          }
+        ]
+      })
+    });
 
-    const inner = document.createElement("div");
-    inner.textContent = m.content;
-    inner.style.whiteSpace = "pre-wrap";
+    const data = await res.json();
 
-    row.appendChild(inner);
-    chatBox.appendChild(row);
-  });
+    chat.title = (data.reply || "Chat")
+      .replace(/["'.,!?]/g, "")
+      .split(" ")
+      .slice(0, 3)
+      .join(" ");
 
-  scrollBottom();
+    saveChats();
+    renderSidebar();
+
+  } catch {}
 }
 
-/* =======================
-   SCROLL
-======================= */
-function scrollBottom() {
+/* =========================
+   CREATE CHAT
+========================= */
+function createNewChat(firstMessage = null) {
+  const chat = {
+    id: Date.now(),
+    title: "New Chat",
+    messages: []
+  };
+
+  chats.unshift(chat);
+  currentChatId = chat.id;
+  messageCount = 0;
+
+  saveChats();
+  renderSidebar();
+  loadChat(chat.id);
+
+  document.querySelector(".app").classList.add("chat-mode");
+
+  if (firstMessage) sendMessage(firstMessage);
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+function renderSidebar() {
+  chatList.innerHTML = "";
+
+  chats.forEach(chat => {
+    const item = document.createElement("div");
+    item.className = "chat-item";
+
+    const title = document.createElement("span");
+    title.innerText = chat.title;
+
+    const del = document.createElement("button");
+    del.innerText = "×";
+    del.className = "delete-btn";
+
+    del.onclick = (e) => {
+      e.stopPropagation();
+
+      chats = chats.filter(c => c.id !== chat.id);
+      saveChats();
+
+      if (currentChatId === chat.id) currentChatId = null;
+
+      if (chats.length === 0) {
+        createNewChat();
+      } else {
+        currentChatId = chats[0].id;
+        loadChat(currentChatId);
+      }
+
+      renderSidebar();
+    };
+
+    item.appendChild(title);
+    item.appendChild(del);
+
+    if (chat.id === currentChatId) {
+      item.classList.add("active");
+    }
+
+    item.onclick = () => {
+      currentChatId = chat.id;
+      loadChat(chat.id);
+      renderSidebar();
+    };
+
+    chatList.appendChild(item);
+  });
+}
+
+/* =========================
+   LOAD CHAT
+========================= */
+function loadChat(id) {
+  const chat = chats.find(c => c.id === id);
+  if (!chat) return;
+
+  chatBox.innerHTML = "";
+
+  chat.messages.forEach(m => {
+    addMessage(m.role, m.text);
+  });
+}
+
+/* =========================
+   ADD MESSAGE
+========================= */
+function addMessage(role, text) {
+  const div = document.createElement("div");
+  div.className = "msg " + role;
+  div.innerText = text;
+
+  chatBox.appendChild(div);
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-/* =======================
+/* =========================
+   SAVE MESSAGE
+========================= */
+function saveMessage(role, text) {
+  const chat = chats.find(c => c.id === currentChatId);
+  if (!chat) return;
+
+  chat.messages.push({ role, text });
+  saveChats();
+}
+
+/* =========================
    TYPEWRITER
-======================= */
-function typeText(element, text, speed = 10) {
-  element.innerHTML = "";
+========================= */
+function typeText(element, text) {
   let i = 0;
+  element.textContent = "";
+
+  let speed = 18;
+  if (mode === "write" && text.length > 200) speed = 5;
 
   function type() {
     if (i < text.length) {
-      element.innerHTML += text[i] === "\n" ? "<br>" : text[i];
+      const char = text[i];
+      element.textContent += char === " " ? "\u00A0" : char;
       i++;
-      scrollBottom();
       setTimeout(type, speed);
     }
+    chatBox.scrollTop = chatBox.scrollHeight;
   }
 
   type();
 }
 
-/* =======================
-   SEND MESSAGE
-======================= */
-async function sendMessage(text) {
-  const msg = (text || input.value).trim();
-  if (!msg) return;
+/* =========================
+   AI CHAT
+========================= */
+async function sendToAI(text) {
+  addMessage("ai", "Thinking... 🤖");
 
-  if (!currentChatId || !chats[currentChatId]) {
-    createChat(msg);
+  const chat = chats.find(c => c.id === currentChatId);
+  if (!chat) return;
+
+  try {
+    const res = await fetch("http://localhost:3000/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode,
+        messages: chat.messages.map(m => ({
+          role: m.role === "ai" ? "assistant" : m.role,
+          content: m.text
+        }))
+      })
+    });
+
+    const data = await res.json();
+
+    if (chatBox.lastChild) chatBox.lastChild.remove();
+
+    const aiMsg = document.createElement("div");
+    aiMsg.className = "msg ai";
+    chatBox.appendChild(aiMsg);
+
+    typeText(aiMsg, data.reply || "No response");
+
+    setTimeout(() => {
+      saveMessage("ai", data.reply);
+    }, 300);
+
+  } catch (err) {
+    console.error(err);
+    if (chatBox.lastChild) chatBox.lastChild.remove();
+    addMessage("ai", "❌ Server error");
+  }
+}
+
+/* =========================
+   SEND MESSAGE
+========================= */
+function sendMessage(text) {
+  if (!text.trim()) return;
+
+  if (!currentChatId) {
+    createNewChat(text);
     return;
   }
 
-  const chat = chats[currentChatId];
+  addMessage("user", text);
+  saveMessage("user", text);
 
-  chat.messages.push({ role: "user", content: msg });
-  input.value = "";
+  messageCount++;
 
-  renderMessages();
-
-  const res = await fetch("http://localhost:3000/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode, messages: chat.messages })
-  });
-
-  const data = await res.json().catch(() => null);
-  if (!data) return;
-
-  const reply = data.reply || "No response";
-
-  chat.messages.push({ role: "assistant", content: reply });
-
-  const row = document.createElement("div");
-  row.className = "message assistant";
-
-  const inner = document.createElement("div");
-  row.appendChild(inner);
-  chatBox.appendChild(row);
-
-  typeText(inner, reply);
-
-  if (data.title) {
-    chat.title = normalizeTitle(data.title);
-    renderChats();
+  // 🔥 ONLY UPDATE TITLE ON MILESTONES
+  if (shouldUpdateTitle(messageCount)) {
+    updateAITitle(text);
   }
 
-  save();
+  sendToAI(text);
 }
 
-/* =======================
-   EVENTS
-======================= */
-form.addEventListener("submit", e => {
-  e.preventDefault();
-  sendMessage();
-});
+/* =========================
+   HOME SEND
+========================= */
+document.getElementById("home-send").onclick = () => {
+  const text = homeInput.value.trim();
+  if (!text) return;
 
-sendBtn.addEventListener("click", sendMessage);
+  homeInput.value = "";
+  createNewChat(text);
+};
 
-homeInput.addEventListener("keydown", e => {
+/* =========================
+   ENTER KEYS
+========================= */
+homeInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
-    const val = homeInput.value.trim();
-    if (!val) return;
+    e.preventDefault();
+    const text = homeInput.value.trim();
+    if (!text) return;
 
     homeInput.value = "";
-    createChat(val);
-    setTimeout(() => sendMessage(val), 0);
+    createNewChat(text);
   }
 });
 
-document.getElementById("new-chat-btn")?.addEventListener("click", () => {
-  createChat("New Chat", "chat");
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = "";
+    sendMessage(text);
+  }
 });
 
-/* =======================
-   GLOBALS
-======================= */
-window.startMode = (m) => createChat(m, m);
-window.openGameMenu = () => showScreen("game");
+/* =========================
+   CHAT FORM
+========================= */
+document.getElementById("chat-form").onsubmit = (e) => {
+  e.preventDefault();
+  sendMessage(input.value);
+  input.value = "";
+};
 
-/* =======================
+/* =========================
+   MODE BUTTONS
+========================= */
+document.getElementById("new-chat-btn").onclick = () => createNewChat();
+
+document.getElementById("btn-quiz").onclick = () => { mode = "quiz"; createNewChat(); };
+document.getElementById("btn-homework").onclick = () => { mode = "homework"; createNewChat(); };
+document.getElementById("btn-write").onclick = () => { mode = "write"; createNewChat(); };
+document.getElementById("btn-summarize").onclick = () => { mode = "summarize"; createNewChat(); };
+
+/* =========================
    INIT
-======================= */
-function init() {
-  showScreen("home");
-  renderChats();
+========================= */
+if (chats.length > 0) {
+  currentChatId = chats[0].id;
+  renderSidebar();
+  loadChat(currentChatId);
 }
-
-document.addEventListener("DOMContentLoaded", init);
