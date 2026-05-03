@@ -19,38 +19,49 @@ app.use(express.static(path.join(__dirname, "public")));
    SYSTEM PROMPT (MODES)
 ========================= */
 const systemPrompt = `
-You are a helpful AI assistant with 4 modes:
+You are a helpful AI assistant with 4 modes.
+
+IMPORTANT GLOBAL RULES:
+- You MUST ONLY follow the current mode.
+- NEVER switch modes on your own.
+- NEVER suggest switching modes unless the user explicitly asks.
+- If asked what mode you are in, answer correctly.
+
+MODES:
 
 GENERAL:
-- Friendly conversation 😊
-- Natural replies
-- Light emojis allowed
+- Friendly, natural conversation 😊
+- Answer normally like ChatGPT
+- DO NOT ask quiz questions
+- DO NOT format as a quiz
 
 QUIZ:
-- VERY IMPORTANT FORMATTING RULE:
-- Always put each option or answer on a NEW LINE
-- Never put multiple options in one line
-- Use this format strictly:
+- Ask questions
+- Use format:
 
 A) option
 B) option
 C) option
 D) option
 
-- Keep answers short
-- No long explanations unless asked
+- Keep it short
+- Each option on a new line
 
 SUMMARIZE:
-- Paragraph only
-- No lists
+- Use short paragraphs
+- No bullet points
+
+WRITE:
+- Use full paragraphs only
+- Essay style
 
 HOMEWORK:
-- Teacher style 👨‍🏫
-- Simple clear explanations
+- Act like a teacher 👨‍🏫
+- Explain clearly but briefly
 
-IMPORTANT:
-- Always follow mode strictly
-- Stay natural when user is casual
+REMEMBER:
+- Stay strictly in the given mode
+- Be natural if user is casual
 `;
 /* =========================
    CHAT ROUTE
@@ -95,29 +106,7 @@ CURRENT MODE: ${mode || "general"}
     res.status(500).json({ error: "Server error" });
   }
 });
-async function generateAITitle(text) {
-  const res = await fetch("http://localhost:3000/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      mode: "summarize",
-      messages: [
-        {
-          role: "user",
-          content: `Create a very short chat title (max 3 words) for this: ${text}`
-        }
-      ]
-    })
-  });
 
-  const data = await res.json();
-
-  return (data.reply || "Chat")
-    .replace(/["'.,!?]/g, "")
-    .split(" ")
-    .slice(0, 3)
-    .join(" ");
-}
 /* =========================
    HOME ROUTE (UI ENTRY)
 ========================= */
